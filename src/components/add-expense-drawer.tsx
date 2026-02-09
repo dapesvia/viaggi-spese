@@ -1,10 +1,12 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { motion } from "framer-motion";
-import { X, Euro, Calendar } from "lucide-react";
+import { X, Camera, Image as ImageIcon } from "lucide-react";
 import { Drawer } from "vaul";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/lib/supabase";
 import { useTrip } from "@/lib/trip-context";
+import { MobileDatePicker } from "./mobile-date-picker";
+import { MobileMoneyInput } from "./mobile-money-input";
 
 const CATEGORIES = [
   { id: "food", label: "Cibo", emoji: "🍽️" },
@@ -16,10 +18,25 @@ const CATEGORIES = [
 ];
 
 const SPLIT_OPTIONS = [
-  { id: "equal", label: "Diviso 50/50", icon: "⚖️" },
-  { id: "me", label: "Solo Alex", icon: "👤" },
-  { id: "partner", label: "Solo Tina", icon: "👥" },
+  { id: "equal", label: "50/50", detail: "Diviso a metà", icon: "⚖️" },
+  { id: "me", label: "Alex", detail: "Pago solo io", icon: "👤" },
+  { id: "partner", label: "Tina", detail: "Paga solo lei", icon: "👩" },
+  { id: "70-30", label: "70/30", detail: "Io 70, lei 30", icon: "📊" },
+  { id: "60-40", label: "60/40", detail: "Io 60, lei 40", icon: "📊" },
 ];
+
+// Exchange rates (approximate - in production use API)
+const EXCHANGE_RATES: Record<string, number> = {
+  EUR: 1,
+  USD: 0.92,
+  GBP: 1.17,
+  CHF: 1.05,
+  JPY: 0.0062,
+  CZK: 0.041,
+  PLN: 0.23,
+  HRK: 0.13,
+  THB: 0.027,
+};
 
 interface AddExpenseDrawerProps {
   open: boolean;
@@ -28,22 +45,31 @@ interface AddExpenseDrawerProps {
 
 export function AddExpenseDrawer({ open, onOpenChange }: AddExpenseDrawerProps) {
   const { currentTrip } = useTrip();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [amount, setAmount] = useState("");
+  const [currency, setCurrency] = useState("EUR");
   const [category, setCategory] = useState("food");
   const [splitType, setSplitType] = useState("equal");
   const [description, setDescription] = useState("");
   const [expenseDate, setExpenseDate] = useState(new Date().toISOString().split('T')[0]);
+  const [receiptImage, setReceiptImage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const handleNumberClick = (num: string) => {
-    if (num === "." && amount.includes(".")) return;
-    if (amount.split(".")[1]?.length >= 2) return;
-    setAmount((prev) => prev + num);
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      setReceiptImage(event.target?.result as string);
+    };
+    reader.readAsDataURL(file);
   };
 
-  const handleBackspace = () => {
-    setAmount((prev) => prev.slice(0, -1));
+  const convertToEur = (amt: number, curr: string): number => {
+    const rate = EXCHANGE_RATES[curr] || 1;
+    return amt * rate;
   };
 
   const handleSave = async () => {
@@ -51,26 +77,26 @@ export function AddExpenseDrawer({ open, onOpenChange }: AddExpenseDrawerProps) 
 
     setLoading(true);
     try {
+      const amountNum = parseFloat(amount);
+      const amountInEur = convertToEur(amountNum, currency);
+
       const { error } = await supabase.from('expenses').insert({
-        amount: parseFloat(amount),
-        original_currency: 'EUR',
-        amount_in_eur: parseFloat(amount),
+        amount: amountNum,
+        original_currency: currency,
+        amount_in_eur: amountInEur,
         category,
         description: description || null,
-        paid_by_user_id: null, // No auth
+        paid_by_user_id: null,
         split_type: splitType,
         expense_date: expenseDate,
-        trip_id: currentTrip.id
+        trip_id: currentTrip.id,
+        receipt_url: receiptImage // In production, upload to storage first
       });
 
       if (error) throw error;
 
       onOpenChange(false);
-      setAmount("");
-      setDescription("");
-      setCategory("food");
-      setSplitType("equal");
-      setExpenseDate(new Date().toISOString().split('T')[0]);
+      resetForm();
     } catch (error) {
       console.error('Errore salvataggio spesa:', error);
       alert('Errore nel salvare la spesa. Riprova.');
@@ -79,9 +105,19 @@ export function AddExpenseDrawer({ open, onOpenChange }: AddExpenseDrawerProps) 
     }
   };
 
-  if (!currentTrip) {
-    return null;
-  }
+  const resetForm = () => {
+    setAmount("");
+    setCurrency("EUR");
+    setCategory("food");
+    setSplitType("equal");
+    setDescription("");
+    setExpenseDate(new Date().toISOString().split('T')[0]);
+    setReceiptImage(null);
+  };
+
+  if (!currentTrip) return null;
+
+  const amountInEur = amount ? convertToEur(parseFloat(amount), currency) : 0;
 
   return (
     <Drawer.Root open={open} onOpenChange={onOpenChange}>
@@ -108,26 +144,20 @@ export function AddExpenseDrawer({ open, onOpenChange }: AddExpenseDrawerProps) 
               </button>
             </div>
 
-            {/* Amount Display */}
-            <div className="mb-4 p-6 rounded-2xl bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/20">
-              <div className="flex items-center justify-center gap-2 text-4xl font-bold">
-                <Euro className="w-8 h-8 text-primary" />
-                <span>{amount || "0.00"}</span>
-              </div>
-            </div>
-
-            {/* Numeric Keypad */}
-            <div className="grid grid-cols-3 gap-2 mb-4">
-              {["1", "2", "3", "4", "5", "6", "7", "8", "9", ".", "0", "⌫"].map((key) => (
-                <motion.button
-                  key={key}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => (key === "⌫" ? handleBackspace() : handleNumberClick(key))}
-                  className="h-14 rounded-xl bg-muted hover:bg-muted/80 font-semibold text-lg transition-colors active:bg-muted/60"
-                >
-                  {key}
-                </motion.button>
-              ))}
+            {/* Amount Input */}
+            <div className="mb-4">
+              <MobileMoneyInput
+                value={amount}
+                onChange={setAmount}
+                currency={currency}
+                onCurrencyChange={setCurrency}
+                label="Importo"
+              />
+              {currency !== "EUR" && amount && (
+                <p className="text-sm text-muted-foreground mt-2 text-center">
+                  ≈ €{amountInEur.toFixed(2)} EUR
+                </p>
+              )}
             </div>
 
             {/* Category Selection */}
@@ -137,11 +167,12 @@ export function AddExpenseDrawer({ open, onOpenChange }: AddExpenseDrawerProps) 
               </label>
               <div className="grid grid-cols-3 gap-2">
                 {CATEGORIES.map((cat) => (
-                  <button
+                  <motion.button
                     key={cat.id}
+                    whileTap={{ scale: 0.95 }}
                     onClick={() => setCategory(cat.id)}
                     className={cn(
-                      "p-3 rounded-xl border-2 transition-all active:scale-95",
+                      "p-3 rounded-xl border-2 transition-all",
                       category === cat.id
                         ? "border-primary bg-primary/10"
                         : "border-border hover:border-primary/50"
@@ -149,46 +180,46 @@ export function AddExpenseDrawer({ open, onOpenChange }: AddExpenseDrawerProps) 
                   >
                     <div className="text-2xl mb-1">{cat.emoji}</div>
                     <div className="text-xs font-medium">{cat.label}</div>
-                  </button>
+                  </motion.button>
                 ))}
               </div>
             </div>
 
-            {/* Split Type */}
+            {/* Split Type with custom percentages */}
             <div className="mb-4">
               <label className="text-sm font-medium text-muted-foreground mb-2 block">
                 Chi paga
               </label>
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-5 gap-2">
                 {SPLIT_OPTIONS.map((opt) => (
-                  <button
+                  <motion.button
                     key={opt.id}
+                    whileTap={{ scale: 0.95 }}
                     onClick={() => setSplitType(opt.id)}
                     className={cn(
-                      "p-3 rounded-xl border-2 transition-all active:scale-95",
+                      "p-2 rounded-xl border-2 transition-all",
                       splitType === opt.id
                         ? "border-primary bg-primary/10"
                         : "border-border hover:border-primary/50"
                     )}
                   >
-                    <div className="text-xl mb-1">{opt.icon}</div>
-                    <div className="text-xs font-medium">{opt.label}</div>
-                  </button>
+                    <div className="text-lg mb-0.5">{opt.icon}</div>
+                    <div className="text-[10px] font-medium leading-tight">{opt.label}</div>
+                  </motion.button>
                 ))}
               </div>
+              <p className="text-xs text-muted-foreground mt-2 text-center">
+                {SPLIT_OPTIONS.find(o => o.id === splitType)?.detail}
+              </p>
             </div>
 
-            {/* Date */}
+            {/* Date Picker */}
             <div className="mb-4">
-              <label className="text-sm font-medium text-muted-foreground mb-2 block">
-                <Calendar className="w-4 h-4 inline mr-1" />
-                Data
-              </label>
-              <input
-                type="date"
+              <MobileDatePicker
                 value={expenseDate}
-                onChange={(e) => setExpenseDate(e.target.value)}
-                className="w-full p-3 rounded-xl border-2 border-border bg-background focus:border-primary focus:outline-none transition-colors text-base"
+                onChange={setExpenseDate}
+                label="📅 Data"
+                maxDate={new Date().toISOString().split('T')[0]}
               />
             </div>
 
@@ -202,8 +233,61 @@ export function AddExpenseDrawer({ open, onOpenChange }: AddExpenseDrawerProps) 
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder="Es: Cena al ristorante"
-                className="w-full p-3 rounded-xl border-2 border-border bg-background focus:border-primary focus:outline-none transition-colors text-base"
+                className="w-full p-4 rounded-xl border-2 border-border bg-background focus:border-primary focus:outline-none transition-colors text-base"
               />
+            </div>
+
+            {/* Receipt Photo */}
+            <div className="mb-4">
+              <label className="text-sm font-medium text-muted-foreground mb-2 block">
+                📷 Foto scontrino (opzionale)
+              </label>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                capture="environment"
+                onChange={handleImageSelect}
+                className="hidden"
+              />
+
+              {receiptImage ? (
+                <div className="relative rounded-xl overflow-hidden h-32">
+                  <img
+                    src={receiptImage}
+                    alt="Scontrino"
+                    className="w-full h-full object-cover"
+                  />
+                  <button
+                    onClick={() => setReceiptImage(null)}
+                    className="absolute top-2 right-2 p-2 rounded-full bg-black/50 text-white"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              ) : (
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    className="flex-1 h-16 rounded-xl border-2 border-dashed border-border hover:border-primary/50 transition-colors flex items-center justify-center gap-2 text-muted-foreground"
+                  >
+                    <Camera className="w-5 h-5" />
+                    <span className="text-sm">Scatta</span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (fileInputRef.current) {
+                        fileInputRef.current.removeAttribute('capture');
+                        fileInputRef.current.click();
+                      }
+                    }}
+                    className="flex-1 h-16 rounded-xl border-2 border-dashed border-border hover:border-primary/50 transition-colors flex items-center justify-center gap-2 text-muted-foreground"
+                  >
+                    <ImageIcon className="w-5 h-5" />
+                    <span className="text-sm">Galleria</span>
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* Save Button */}

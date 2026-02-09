@@ -103,7 +103,7 @@ export type Expense = {
   category: "food" | "transport" | "accommodation" | "activities" | "shopping" | "other";
   description: string | null;
   paid_by_user_id: string;
-  split_type: "equal" | "me" | "partner";
+  split_type: "equal" | "me" | "partner" | "70-30" | "60-40";
   receipt_url: string | null;
   expense_date: string;
   created_at: string;
