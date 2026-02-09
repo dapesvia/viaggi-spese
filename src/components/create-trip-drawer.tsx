@@ -1,19 +1,20 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { motion } from "framer-motion";
 import { X, Upload, Loader2 } from "lucide-react";
 import { Drawer } from "vaul";
 import { useTrip } from "@/lib/trip-context";
-import { supabase } from "@/lib/supabase";
+import { supabase, type Trip } from "@/lib/supabase";
 import { MobileDatePicker } from "./mobile-date-picker";
 import { MobileMoneyInput } from "./mobile-money-input";
 
 interface CreateTripDrawerProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
+    tripToEdit?: Trip | null;
 }
 
-export function CreateTripDrawer({ open, onOpenChange }: CreateTripDrawerProps) {
-    const { createTrip } = useTrip();
+export function CreateTripDrawer({ open, onOpenChange, tripToEdit }: CreateTripDrawerProps) {
+    const { createTrip, updateTrip } = useTrip();
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const [name, setName] = useState("");
@@ -24,6 +25,20 @@ export function CreateTripDrawer({ open, onOpenChange }: CreateTripDrawerProps) 
     const [coverPreview, setCoverPreview] = useState("");
     const [loading, setLoading] = useState(false);
     const [uploading, setUploading] = useState(false);
+
+    // Populate form when tripToEdit changes
+    useEffect(() => {
+        if (tripToEdit && open) {
+            setName(tripToEdit.name);
+            setStartDate(tripToEdit.start_date);
+            setEndDate(tripToEdit.end_date);
+            setBudget(tripToEdit.budget ? tripToEdit.budget.toString() : "");
+            setCoverUrl(tripToEdit.cover_image_url || "");
+            setCoverPreview(tripToEdit.cover_image_url || "");
+        } else if (!tripToEdit && open) {
+            resetForm();
+        }
+    }, [tripToEdit, open]);
 
     const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -66,20 +81,26 @@ export function CreateTripDrawer({ open, onOpenChange }: CreateTripDrawerProps) 
 
         setLoading(true);
         try {
-            await createTrip({
+            const tripData: Omit<Trip, 'id' | 'created_at' | 'updated_at' | 'created_by'> = {
                 name,
                 start_date: startDate,
                 end_date: endDate,
                 budget: budget ? parseFloat(budget) : null,
                 cover_image_url: coverUrl || null,
-                status: new Date(startDate) <= new Date() ? "active" : "upcoming"
-            });
+                status: (new Date(startDate) <= new Date() ? "active" : "upcoming") as "active" | "upcoming"
+            };
+
+            if (tripToEdit) {
+                await updateTrip(tripToEdit.id, tripData);
+            } else {
+                await createTrip(tripData);
+            }
 
             onOpenChange(false);
             resetForm();
         } catch (error) {
-            console.error("Errore creazione viaggio:", error);
-            alert("Errore nel creare il viaggio");
+            console.error("Errore salvataggio viaggio:", error);
+            alert("Errore nel salvare il viaggio");
         } finally {
             setLoading(false);
         }
@@ -107,7 +128,9 @@ export function CreateTripDrawer({ open, onOpenChange }: CreateTripDrawerProps) 
                     <div className="flex-1 overflow-y-auto px-4 pb-6">
                         {/* Header */}
                         <div className="flex items-center justify-between mb-4">
-                            <h2 className="text-2xl font-bold">Nuovo Viaggio ✈️</h2>
+                            <h2 className="text-2xl font-bold">
+                                {tripToEdit ? "Modifica Viaggio ✏️" : "Nuovo Viaggio ✈️"}
+                            </h2>
                             <button
                                 onClick={() => onOpenChange(false)}
                                 className="p-2 rounded-full hover:bg-muted transition-colors active:scale-95"
@@ -212,7 +235,7 @@ export function CreateTripDrawer({ open, onOpenChange }: CreateTripDrawerProps) 
                             disabled={!name || !startDate || !endDate || loading || uploading}
                             className="w-full h-14 mt-6 rounded-xl bg-gradient-to-r from-primary to-primary/80 text-primary-foreground font-semibold text-lg disabled:opacity-50 shadow-lg shadow-primary/30"
                         >
-                            {loading ? "Creazione..." : "Crea Viaggio ✨"}
+                            {loading ? "Salvataggio..." : (tripToEdit ? "Salva Modifiche" : "Crea Viaggio ✨")}
                         </motion.button>
                     </div>
                 </Drawer.Content>

@@ -232,59 +232,78 @@ export function WalletDashboard() {
       </motion.div>
 
       {/* Balance Card */}
+      {/* Balance Card - High Visibility */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1 }}
-        className="p-6 rounded-2xl glass border border-border/50"
+        className={cn(
+          "p-6 rounded-3xl border-2 shadow-lg relative overflow-hidden",
+          balance > 5
+            ? "bg-green-500/10 border-green-500/20"
+            : balance < -5
+              ? "bg-orange-500/10 border-orange-500/20"
+              : "bg-muted/30 border-border/50"
+        )}
       >
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold">Bilancio</h3>
+        <div className="flex items-center justify-between mb-6 relative z-10">
+          <h3 className="text-xl font-bold flex items-center gap-2">
+            ⚖️ Bilancio
+          </h3>
           {Math.abs(balance) >= 1 && (
             <motion.button
               whileTap={{ scale: 0.95 }}
               onClick={() => setShowSettleDrawer(true)}
-              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-green-500/10 text-green-500 border border-green-500/20 hover:bg-green-500/20 transition-colors"
+              className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-primary text-primary-foreground shadow-lg hover:shadow-primary/25 transition-all font-semibold"
             >
-              <Handshake className="w-4 h-4" />
-              <span className="text-sm font-medium">Salda</span>
+              <Handshake className="w-5 h-5" />
+              <span>Salda</span>
             </motion.button>
           )}
         </div>
 
-        {/* Who paid what summary */}
-        <div className="grid grid-cols-2 gap-3 mb-4">
-          <div className="p-3 rounded-xl bg-blue-500/10 border border-blue-500/20">
-            <p className="text-xs text-muted-foreground">Alex ha speso</p>
+        <div className="flex flex-col items-center justify-center gap-3 p-6 rounded-2xl bg-background/50 backdrop-blur-sm border border-border/10 relative z-10">
+          {balance > 5 ? (
+            <>
+              <p className="text-muted-foreground font-medium text-lg">Tina ti deve</p>
+              <div className="flex items-center gap-3 text-green-500">
+                <TrendingUp className="w-8 h-8" />
+                <span className="text-4xl font-black tracking-tight">€{Math.abs(balance).toFixed(2)}</span>
+              </div>
+            </>
+          ) : balance < -5 ? (
+            <>
+              <p className="text-muted-foreground font-medium text-lg">Tu devi a Tina</p>
+              <div className="flex items-center gap-3 text-orange-500">
+                <TrendingDown className="w-8 h-8" />
+                <span className="text-4xl font-black tracking-tight">€{Math.abs(balance).toFixed(2)}</span>
+              </div>
+            </>
+          ) : (
+            <div className="flex flex-col items-center gap-2 py-2">
+              <span className="text-4xl">🎉</span>
+              <p className="text-xl font-bold text-muted-foreground">Siete pari!</p>
+            </div>
+          )}
+        </div>
+
+        {/* Totals overlay */}
+        <div className="grid grid-cols-2 gap-4 mt-6 relative z-10">
+          <div className="p-3 rounded-xl bg-blue-500/10 border border-blue-500/20 text-center">
+            <p className="text-xs text-muted-foreground mb-1">Tu hai speso</p>
             <p className="text-lg font-bold text-blue-500">€{alexTotal.toFixed(2)}</p>
           </div>
-          <div className="p-3 rounded-xl bg-pink-500/10 border border-pink-500/20">
-            <p className="text-xs text-muted-foreground">Tina ha speso</p>
+          <div className="p-3 rounded-xl bg-pink-500/10 border border-pink-500/20 text-center">
+            <p className="text-xs text-muted-foreground mb-1">Tina ha speso</p>
             <p className="text-lg font-bold text-pink-500">€{tinaTotal.toFixed(2)}</p>
           </div>
         </div>
 
-        <div className="flex items-center justify-center gap-3 p-3 rounded-xl bg-muted/50">
-          {balance > 5 ? (
-            <>
-              <TrendingUp className="w-5 h-5 text-green-500" />
-              <p className="text-lg">
-                Tina ti deve{" "}
-                <span className="font-bold text-green-500">€{Math.abs(balance).toFixed(2)}</span>
-              </p>
-            </>
-          ) : balance < -5 ? (
-            <>
-              <TrendingDown className="w-5 h-5 text-orange-500" />
-              <p className="text-lg">
-                Tu devi a Tina{" "}
-                <span className="font-bold text-orange-500">€{Math.abs(balance).toFixed(2)}</span>
-              </p>
-            </>
-          ) : (
-            <p className="text-lg text-muted-foreground">Tutto a posto! 🎉</p>
-          )}
-        </div>
+        {/* Decorative background blur */}
+        <div className={cn(
+          "absolute -right-10 -top-10 w-40 h-40 rounded-full blur-3xl opacity-20 pointer-events-none",
+          balance > 5 ? "bg-green-500" : balance < -5 ? "bg-orange-500" : "bg-primary"
+        )} />
       </motion.div>
 
       {/* Settlement History */}

@@ -8,6 +8,8 @@ interface TripContextType {
     selectTrip: (tripId: string) => void;
     refreshTrips: () => Promise<void>;
     createTrip: (trip: Omit<Trip, 'id' | 'created_at' | 'updated_at' | 'created_by'>) => Promise<Trip>;
+    updateTrip: (id: string, updates: Partial<Trip>) => Promise<void>;
+    deleteTrip: (id: string) => Promise<void>;
 }
 
 const TripContext = createContext<TripContextType | undefined>(undefined);
@@ -32,12 +34,11 @@ export function TripProvider({ children }: { children: ReactNode }) {
 
             setTrips(data || []);
 
-            // Auto-select first trip or restore from localStorage
-            const savedTripId = localStorage.getItem('currentTripId');
-            if (data && data.length > 0) {
-                const savedTrip = savedTripId ? data.find(t => t.id === savedTripId) : null;
-                setCurrentTrip(savedTrip || data[0]);
-            }
+            // Do NOT auto-select first trip anymore based on user request.
+            // Only restore if explicitly saved in localStorage? 
+            // User asked: "non fare subito selezionare in automatico". 
+            // Safest: don't select anything.
+            setCurrentTrip(null);
         } catch (error) {
             console.error('Errore caricamento viaggi:', error);
         } finally {
@@ -66,10 +67,42 @@ export function TripProvider({ children }: { children: ReactNode }) {
         if (error) throw error;
 
         await loadTrips();
-        setCurrentTrip(data);
-        localStorage.setItem('currentTripId', data.id);
+        // Do NOT auto-select the new trip? User wants manual selection.
+        // But for creation it might be nice. Let's stick to manual to be consistent.
+        // setCurrentTrip(data); 
+        // localStorage.setItem('currentTripId', data.id);
 
         return data;
+    };
+
+    const updateTrip = async (id: string, updates: Partial<Trip>) => {
+        const { error } = await supabase
+            .from('trips')
+            .update(updates)
+            .eq('id', id);
+
+        if (error) throw error;
+        await loadTrips();
+
+        // If updating current trip, update local state
+        if (currentTrip?.id === id) {
+            setCurrentTrip(prev => prev ? { ...prev, ...updates } : null);
+        }
+    };
+
+    const deleteTrip = async (id: string) => {
+        const { error } = await supabase
+            .from('trips')
+            .delete()
+            .eq('id', id);
+
+        if (error) throw error;
+
+        if (currentTrip?.id === id) {
+            setCurrentTrip(null);
+            localStorage.removeItem('currentTripId');
+        }
+        await loadTrips();
     };
 
     return (
@@ -79,7 +112,9 @@ export function TripProvider({ children }: { children: ReactNode }) {
             loading,
             selectTrip,
             refreshTrips: loadTrips,
-            createTrip
+            createTrip,
+            updateTrip,
+            deleteTrip
         }}>
             {children}
         </TripContext.Provider>
