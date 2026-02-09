@@ -5,7 +5,7 @@ import { BottomNav } from './components/bottom-nav'
 import HomePage from './pages/home'
 import WalletPage from './pages/wallet'
 import ItineraryPage from './pages/itinerary'
-import DocsPage from './pages/docs'
+import StatsPage from './pages/stats'
 
 function App() {
   return (
@@ -18,7 +18,7 @@ function App() {
                 <Route path="/" element={<HomePage />} />
                 <Route path="/wallet" element={<WalletPage />} />
                 <Route path="/itinerary" element={<ItineraryPage />} />
-                <Route path="/docs" element={<DocsPage />} />
+                <Route path="/stats" element={<StatsPage />} />
               </Routes>
             </main>
             <BottomNav />

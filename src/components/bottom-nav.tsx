@@ -1,5 +1,5 @@
 import { NavLink } from "react-router-dom";
-import { Home, Wallet, Calendar, FileText } from "lucide-react";
+import { Home, Wallet, Calendar, BarChart3 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTrip } from "@/lib/trip-context";
 
@@ -7,7 +7,7 @@ const NAV_ITEMS = [
   { icon: Home, label: "Home", path: "/" },
   { icon: Wallet, label: "Spese", path: "/wallet" },
   { icon: Calendar, label: "Itinerario", path: "/itinerary" },
-  { icon: FileText, label: "Documenti", path: "/docs" },
+  { icon: BarChart3, label: "Statistiche", path: "/stats" },
 ];
 
 export function BottomNav() {
