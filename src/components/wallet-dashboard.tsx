@@ -7,6 +7,7 @@ import { supabase, type Expense } from "@/lib/supabase";
 import { useTrip } from "@/lib/trip-context";
 import { useToast } from "@/components/toast";
 import { calculateSplit } from "@/lib/split-utils";
+import { calculateGlobalBalance } from "@/lib/balance-utils";
 import { EditExpenseDrawer } from "./edit-expense-drawer";
 import { SettleDebtDrawer } from "./settle-debt-drawer";
 import { ConfirmDialog } from "./confirm-dialog";
@@ -119,9 +120,10 @@ function SwipeableExpenseRow({
 
 
 export function WalletDashboard() {
-  const { currentTrip } = useTrip();
+  const { currentTrip, trips } = useTrip();
   const { toast } = useToast();
   const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [globalBalance, setGlobalBalance] = useState(0);
   const [loading, setLoading] = useState(true);
 
   const [showHistory, setShowHistory] = useState(false);
@@ -157,11 +159,17 @@ export function WalletDashboard() {
       const { data, error } = await supabase
         .from('expenses')
         .select('*')
-        .eq('trip_id', currentTrip.id)
         .order('expense_date', { ascending: false });
 
       if (error) throw error;
-      setExpenses(data || []);
+
+      const allExpenses = data || [];
+      const tripExpenses = allExpenses.filter(e => e.trip_id === currentTrip.id);
+
+      setExpenses(tripExpenses);
+
+      // Calculate Global Balance
+      setGlobalBalance(calculateGlobalBalance(trips, allExpenses));
     } catch (error) {
       console.error('Errore caricamento spese:', error);
     } finally {
@@ -267,7 +275,9 @@ export function WalletDashboard() {
     tinaConsumed += split.tina;
   });
 
-  const balance = alexPaid - alexConsumed;
+  // Calculate local trip balance for verification or specific display if needed?
+  // We use globalBalance for the main card as requested.
+  const balance = globalBalance;
 
   // For display "Tu hai speso" / "Tina ha speso", we want real consumption excluding settlements
   // We re-calculate based on realExpenses
@@ -406,7 +416,7 @@ export function WalletDashboard() {
       >
         <div className="flex items-center justify-between mb-6 relative z-10">
           <h3 className="text-xl font-bold flex items-center gap-2">
-            ⚖️ Bilancio
+            ⚖️ Bilancio Totale
           </h3>
           {Math.abs(balance) >= 1 && (
             <motion.button
@@ -423,7 +433,7 @@ export function WalletDashboard() {
         <div className="flex flex-col items-center justify-center gap-3 p-6 rounded-2xl bg-background/50 backdrop-blur-sm border border-border/10 relative z-10">
           {balance > 5 ? (
             <>
-              <p className="text-muted-foreground font-medium text-lg">Tina ti deve</p>
+              <p className="text-muted-foreground font-medium text-lg">Tina ti deve in totale</p>
               <div className="flex items-center gap-3 text-green-500">
                 <TrendingUp className="w-8 h-8" />
                 <span className="text-4xl font-black tracking-tight">€{Math.abs(balance).toFixed(2)}</span>
@@ -431,7 +441,7 @@ export function WalletDashboard() {
             </>
           ) : balance < -5 ? (
             <>
-              <p className="text-muted-foreground font-medium text-lg">Tu devi a Tina</p>
+              <p className="text-muted-foreground font-medium text-lg">Tu devi a Tina in totale</p>
               <div className="flex items-center gap-3 text-orange-500">
                 <TrendingDown className="w-8 h-8" />
                 <span className="text-4xl font-black tracking-tight">€{Math.abs(balance).toFixed(2)}</span>

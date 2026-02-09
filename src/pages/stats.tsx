@@ -8,6 +8,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { TrendingUp, PiggyBank, Calendar, MapPin, ChevronLeft, ChevronRight, X, CalendarDays } from "lucide-react";
 import { createPortal } from "react-dom";
 import { calculateSplit } from "@/lib/split-utils";
+import { calculateGlobalBalance } from "@/lib/balance-utils";
 import { StatsSkeleton } from "@/components/skeleton";
 
 const CATEGORY_COLORS: Record<string, string> = {
@@ -471,42 +472,8 @@ export default function StatsPage() {
         };
     }).filter(t => t.speso > 0 || t.costo > 0);
 
-    // Calcolo Bilancio Globale
-    let globalAlexPaid = 0;
-    let globalAlexConsumed = 0;
-    let globalTinaConsumed = 0;
-
-
-
-    trips.forEach(trip => {
-        const tripCost = trip.budget || 0;
-        const tripPayer = trip.cost_payer || 'split';
-        const tripCostPerPerson = tripCost / 2;
-
-        if (tripPayer === 'alex') {
-            globalAlexPaid += tripCost;
-        } else if (tripPayer === 'split') {
-            globalAlexPaid += tripCostPerPerson;
-        } else if (tripPayer === 'custom') {
-            globalAlexPaid += (trip.cost_split_manual_alex || 0);
-        }
-
-        globalAlexConsumed += tripCostPerPerson;
-        globalTinaConsumed += tripCostPerPerson;
-    });
-
-    allExpenses.forEach(e => {
-        const amount = e.amount_in_eur;
-        const payer = e.payer || (e.split_type === 'partner' ? 'tina' : 'alex');
-
-        if (payer === 'alex') globalAlexPaid += amount;
-
-        const split = calculateSplit(amount, e.split_type, e.split_manual_alex, e.split_manual_tina);
-        globalAlexConsumed += split.alex;
-        globalTinaConsumed += split.tina;
-    });
-
-    const globalBalance = globalAlexPaid - globalAlexConsumed;
+    // Calcolo Bilancio Globale (include settlements)
+    const globalBalance = calculateGlobalBalance(trips, allExpenses);
 
     // Calcolo "Tu hai speso" REALE (senza rimborsi)
     let displayAlexConsumed = 0;
