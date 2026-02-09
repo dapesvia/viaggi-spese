@@ -74,11 +74,17 @@ export function MobileDatePicker({
         setViewDate(new Date(viewDate.getFullYear(), viewDate.getMonth() + 1, 1));
     };
 
+
     const selectDate = (date: Date) => {
-        const dateStr = date.toISOString().split('T')[0];
+        // Format as YYYY-MM-DD using local time to avoid timezone issues
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        const dateStr = `${year}-${month}-${day}`;
         onChange(dateStr);
         setIsOpen(false);
     };
+
 
     const isDateDisabled = (date: Date) => {
         if (minDateObj && date < minDateObj) return true;
