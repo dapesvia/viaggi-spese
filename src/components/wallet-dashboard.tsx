@@ -58,29 +58,7 @@ function calculateSplit(amount: number, splitType: string, manualAlex: number = 
 // Check: Alex pays 100 (50/50). Paid=100. Consumed=50. Balance = +50. Tina owes Alex 50. Correct.
 // Check: Tina pays 100 (50/50). Paid=0. Consumed=50. Balance = -50. Alex owes Tina 50. Correct.
 
-let alexPaid = 0;
-let alexConsumed = 0;
 
-expenses.forEach(e => {
-  // Who Paid?
-  const amount = e.amount_in_eur;
-  if (e.payer === 'alex') {
-    alexPaid += amount;
-  } else if (e.payer === 'tina') {
-    // tinaPaid += amount;
-  } else {
-    // Fallback for old data if migration missed something (shouldn't happen with default)
-    // detailed logic: if split_type was 'partner', tina paid. else alex.
-    if (e.split_type === 'partner') { /* tina paid */ }
-    else { alexPaid += amount; }
-  }
-
-  // Who Consumed?
-  const split = calculateSplit(e.amount_in_eur, e.split_type, e.split_manual_alex, e.split_manual_tina);
-  alexConsumed += split.alex;
-});
-
-const balance = alexPaid - alexConsumed; // Positive: Tina owes Alex. Negative: Alex owes Tina.
 
 export function WalletDashboard() {
   const { currentTrip } = useTrip();

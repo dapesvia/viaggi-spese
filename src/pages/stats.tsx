@@ -5,7 +5,7 @@ import { TripSelector } from "@/components/trip-selector";
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Legend } from "recharts";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
-import { TrendingUp, TrendingDown, PiggyBank, Calendar, MapPin } from "lucide-react";
+import { TrendingUp, PiggyBank, Calendar, MapPin } from "lucide-react";
 
 const CATEGORY_COLORS: Record<string, string> = {
     transport: "#3b82f6",
