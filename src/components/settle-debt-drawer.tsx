@@ -28,6 +28,12 @@ export function SettleDebtDrawer({ open, onOpenChange, balance, onSettled }: Set
 
         setLoading(true);
         try {
+            // Get current user for paid_by_user_id (legacy field)
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) {
+                toast('Errore: utente non autenticato', 'error');
+                return;
+            }
             // The debtor pays, so payer = debtor
             const payerValue = balance > 0 ? 'tina' : 'alex';
 
@@ -38,6 +44,7 @@ export function SettleDebtDrawer({ open, onOpenChange, balance, onSettled }: Set
                 amount_in_eur: amount,
                 category: 'other',
                 description: `💸 Saldo debito: ${debtor} → ${creditor}`,
+                paid_by_user_id: user.id,
                 payer: payerValue,
                 split_type: balance > 0 ? 'partner' : 'me',
                 expense_date: new Date().toISOString().split('T')[0],

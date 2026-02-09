@@ -114,6 +114,13 @@ interface AddExpenseDrawerProps {
 
     setLoading(true);
     try {
+      // Get current user for paid_by_user_id (legacy field)
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast('Errore: utente non autenticato', 'error');
+        return;
+      }
+
       const amountNum = parseFloat(amount);
       const amountInEur = convertToEur(amountNum, currency);
 
@@ -123,6 +130,7 @@ interface AddExpenseDrawerProps {
         amount_in_eur: amountInEur,
         category,
         description: description || null,
+        paid_by_user_id: user.id,
         payer,
         split_type: splitType,
         expense_date: expenseDate,
