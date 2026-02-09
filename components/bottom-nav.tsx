@@ -1,0 +1,127 @@
+"use client";
+
+import { useState } from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { motion } from "framer-motion";
+import { Home, MapPin, Wallet, FileText, Plus } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { AddExpenseDrawer } from "./add-expense-drawer";
+
+const navItems = [
+  { href: "/", icon: Home, label: "Home" },
+  { href: "/itinerary", icon: MapPin, label: "Itinerary" },
+  { href: "/wallet", icon: Wallet, label: "Wallet" },
+  { href: "/docs", icon: FileText, label: "Docs" },
+];
+
+export function BottomNav() {
+  const pathname = usePathname();
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+
+  return (
+    <>
+      <nav
+        className="fixed bottom-0 left-0 right-0 z-50 glass border-t border-border/50"
+        style={{
+          paddingBottom: "env(safe-area-inset-bottom)",
+        }}
+      >
+        <div className="relative flex items-center justify-around h-16 px-2">
+          {navItems.slice(0, 2).map((item) => (
+            <NavItem
+              key={item.href}
+              href={item.href}
+              icon={item.icon}
+              label={item.label}
+              isActive={pathname === item.href}
+            />
+          ))}
+
+          {/* FAB - Floating Action Button */}
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => setIsDrawerOpen(true)}
+            className="relative -mt-8 flex items-center justify-center w-14 h-14 rounded-full bg-gradient-to-br from-primary to-primary/80 shadow-lg shadow-primary/50"
+          >
+            <Plus className="w-6 h-6 text-primary-foreground" />
+            <motion.div
+              className="absolute inset-0 rounded-full bg-primary"
+              initial={{ scale: 1, opacity: 0 }}
+              animate={{ scale: 1.2, opacity: 0 }}
+              transition={{
+                duration: 2,
+                repeat: Infinity,
+                repeatType: "loop",
+              }}
+            />
+          </motion.button>
+
+          {navItems.slice(2).map((item) => (
+            <NavItem
+              key={item.href}
+              href={item.href}
+              icon={item.icon}
+              label={item.label}
+              isActive={pathname === item.href}
+            />
+          ))}
+        </div>
+      </nav>
+
+      <AddExpenseDrawer open={isDrawerOpen} onOpenChange={setIsDrawerOpen} />
+    </>
+  );
+}
+
+function NavItem({
+  href,
+  icon: Icon,
+  label,
+  isActive,
+}: {
+  href: string;
+  icon: React.ElementType;
+  label: string;
+  isActive: boolean;
+}) {
+  return (
+    <Link
+      href={href}
+      className={cn(
+        "relative flex flex-col items-center justify-center gap-1 px-4 py-2 rounded-xl transition-colors",
+        isActive ? "text-primary" : "text-muted-foreground"
+      )}
+    >
+      <div className="relative">
+        <Icon className="w-5 h-5" />
+        {isActive && (
+          <motion.div
+            layoutId="activeTab"
+            className="absolute -inset-2 rounded-full bg-primary/10"
+            initial={false}
+            transition={{
+              type: "spring",
+              stiffness: 500,
+              damping: 30,
+            }}
+          />
+        )}
+      </div>
+      <span className="text-xs font-medium">{label}</span>
+      {isActive && (
+        <motion.div
+          layoutId="activeIndicator"
+          className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-primary"
+          initial={false}
+          transition={{
+            type: "spring",
+            stiffness: 500,
+            damping: 30,
+          }}
+        />
+      )}
+    </Link>
+  );
+}
