@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Check, ArrowRight, AlertTriangle } from "lucide-react";
 import { Drawer } from "vaul";
@@ -25,9 +25,13 @@ export function SettleDebtDrawer({ open, onOpenChange, balance, onSettled }: Set
     const debtor = balance > 0 ? "Tina" : "Alex";
 
     // Initialize amount when drawer opens
-    if (open && !customAmount && Math.abs(balance) > 0) {
-        setCustomAmount(Math.abs(balance).toFixed(2));
-    }
+    useEffect(() => {
+        if (open && Math.abs(balance) > 0) {
+            setCustomAmount(Math.abs(balance).toFixed(2));
+        } else if (!open) {
+            setCustomAmount("");
+        }
+    }, [open, balance]);
 
     const amount = parseFloat(customAmount) || 0;
 

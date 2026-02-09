@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Delete, Check } from "lucide-react";
+import { Delete, Check, X } from "lucide-react";
 import { createPortal } from "react-dom";
 import { cn } from "@/lib/utils";
 
@@ -141,6 +141,14 @@ export function MobileMoneyInput({
                                     <span className="text-4xl font-bold text-primary">
                                         {currentCurrency.symbol}{tempValue || "0.00"}
                                     </span>
+                                    {tempValue && (
+                                        <button
+                                            onClick={() => setTempValue("")}
+                                            className="p-2 rounded-full hover:bg-muted transition-colors text-muted-foreground hover:text-foreground ml-2"
+                                        >
+                                            <X className="w-6 h-6" />
+                                        </button>
+                                    )}
                                 </div>
                             </div>
 
