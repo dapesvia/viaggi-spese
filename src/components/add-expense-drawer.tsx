@@ -43,7 +43,10 @@ const EXCHANGE_RATES: Record<string, number> = {
 interface AddExpenseDrawerProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-}export function AddExpenseDrawer({ open, onOpenChange }: AddExpenseDrawerProps) {
+  onExpenseAdded?: () => void;
+}
+
+export function AddExpenseDrawer({ open, onOpenChange, onExpenseAdded }: AddExpenseDrawerProps) {
   const { currentTrip } = useTrip();
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -152,6 +155,7 @@ interface AddExpenseDrawerProps {
 
       onOpenChange(false);
       resetForm();
+      if (onExpenseAdded) onExpenseAdded();
       toast('Spesa salvata!', 'success');
     } catch (error) {
       console.error('Errore salvataggio spesa:', error);

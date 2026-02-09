@@ -18,13 +18,20 @@ export function SettleDebtDrawer({ open, onOpenChange, balance, onSettled }: Set
     const { toast } = useToast();
     const [loading, setLoading] = useState(false);
     const [confirmStep, setConfirmStep] = useState(false);
+    const [customAmount, setCustomAmount] = useState("");
 
     const creditor = balance > 0 ? "Alex" : "Tina";
     const debtor = balance > 0 ? "Tina" : "Alex";
-    const amount = Math.abs(balance);
+
+    // Initialize amount when drawer opens
+    if (open && !customAmount && Math.abs(balance) > 0) {
+        setCustomAmount(Math.abs(balance).toFixed(2));
+    }
+
+    const amount = parseFloat(customAmount) || 0;
 
     const handleSettle = async () => {
-        if (!currentTrip || amount < 1) return;
+        if (!currentTrip || amount <= 0) return;
 
         setLoading(true);
         try {
@@ -47,8 +54,9 @@ export function SettleDebtDrawer({ open, onOpenChange, balance, onSettled }: Set
 
             if (error) throw error;
 
-            toast('Debito saldato! ✅', 'success');
+            toast('Debito registrato! ✅', 'success');
             setConfirmStep(false);
+            setCustomAmount(""); // Reset
             onOpenChange(false);
             onSettled();
         } catch (error) {
@@ -63,6 +71,7 @@ export function SettleDebtDrawer({ open, onOpenChange, balance, onSettled }: Set
     const handleOpenChange = (isOpen: boolean) => {
         if (!isOpen) {
             setConfirmStep(false);
+            setCustomAmount("");
         }
         onOpenChange(isOpen);
     };
@@ -103,7 +112,22 @@ export function SettleDebtDrawer({ open, onOpenChange, balance, onSettled }: Set
 
                                 <div className="flex flex-col items-center">
                                     <ArrowRight className="w-6 h-6 text-green-500" />
-                                    <p className="text-2xl font-bold text-green-500 mt-1">€{amount.toFixed(2)}</p>
+                                    <div className="flex items-center gap-1 text-green-500 font-bold text-2xl mt-1">
+                                        <span>€</span>
+                                        <input
+                                            type="number"
+                                            value={customAmount}
+                                            onChange={(e) => setCustomAmount(e.target.value)}
+                                            className="w-24 bg-transparent text-center focus:outline-none border-b-2 border-green-500/30 focus:border-green-500 transition-colors p-0"
+                                            placeholder="0.00"
+                                        />
+                                    </div>
+                                    <button
+                                        onClick={() => setCustomAmount(Math.abs(balance).toFixed(2))}
+                                        className="text-xs text-green-600/70 mt-1 hover:underline"
+                                    >
+                                        Totale: €{Math.abs(balance).toFixed(2)}
+                                    </button>
                                 </div>
 
                                 <div className="text-center">
@@ -116,7 +140,7 @@ export function SettleDebtDrawer({ open, onOpenChange, balance, onSettled }: Set
                         </div>
 
                         <p className="text-center text-muted-foreground mb-6">
-                            Conferma che {debtor} ha pagato €{amount.toFixed(2)} a {creditor} per saldare il debito.
+                            Conferma che {debtor} sta pagando €{amount.toFixed(2)} a {creditor}.
                         </p>
 
                         <AnimatePresence mode="wait">
@@ -145,10 +169,10 @@ export function SettleDebtDrawer({ open, onOpenChange, balance, onSettled }: Set
                                     <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-start gap-3">
                                         <AlertTriangle className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" />
                                         <div>
-                                            <p className="font-semibold text-amber-500 text-sm">Sei sicuro?</p>
+                                            <p className="font-semibold text-amber-500 text-sm">Controlla l'importo</p>
                                             <p className="text-xs text-muted-foreground mt-1">
-                                                Questa azione registrerà il pagamento di €{amount.toFixed(2)}.
-                                                Potrai annullarla eliminando la voce dallo storico saldi.
+                                                Stai registrando un pagamento di €{amount.toFixed(2)}.
+                                                {amount < Math.abs(balance) ? " Il resto rimarrà come debito." : ""}
                                             </p>
                                         </div>
                                     </div>
@@ -158,7 +182,7 @@ export function SettleDebtDrawer({ open, onOpenChange, balance, onSettled }: Set
                                             onClick={() => setConfirmStep(false)}
                                             className="h-14 rounded-xl bg-muted text-foreground font-semibold text-base"
                                         >
-                                            Annulla
+                                            Modifica
                                         </motion.button>
                                         <motion.button
                                             whileTap={{ scale: 0.95 }}

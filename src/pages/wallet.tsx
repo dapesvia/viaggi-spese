@@ -1,10 +1,9 @@
 import { useState, useEffect } from "react";
 import { WalletDashboard } from "@/components/wallet-dashboard";
-import { AddExpenseDrawer } from "@/components/add-expense-drawer";
 import { ActorSelector } from "@/components/actor-selector";
 import { TripSelector } from "@/components/trip-selector";
 import { ActivityLogPanel } from "@/components/activity-log-panel";
-import { Plus, FileDown } from "lucide-react";
+import { FileDown } from "lucide-react";
 import { motion } from "framer-motion";
 import { useTrip } from "@/lib/trip-context";
 import { supabase, type Expense } from "@/lib/supabase";
@@ -12,7 +11,6 @@ import { exportTripToPDF } from "@/lib/export-pdf";
 
 export default function WalletPage() {
   const { currentTrip } = useTrip();
-  const [showAddExpense, setShowAddExpense] = useState(false);
   const [expenses, setExpenses] = useState<Expense[]>([]);
 
   useEffect(() => {
@@ -71,20 +69,7 @@ export default function WalletPage() {
       {/* Activity Log - nascosto, collapsabile */}
       <ActivityLogPanel />
 
-      {/* FAB */}
-      {currentTrip && (
-        <motion.button
-          initial={{ scale: 0 }}
-          animate={{ scale: 1 }}
-          whileTap={{ scale: 0.9 }}
-          onClick={() => setShowAddExpense(true)}
-          className="fixed bottom-24 right-6 w-14 h-14 rounded-full bg-gradient-to-r from-primary to-violet-600 text-white shadow-xl shadow-primary/30 flex items-center justify-center"
-        >
-          <Plus className="w-6 h-6" />
-        </motion.button>
-      )}
-
-      <AddExpenseDrawer open={showAddExpense} onOpenChange={setShowAddExpense} />
+      <ActivityLogPanel />
     </div>
   );
 }

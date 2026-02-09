@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { motion, AnimatePresence, useMotionValue, useTransform, PanInfo } from "framer-motion";
-import { TrendingUp, TrendingDown, Trash2, Loader2, Edit2, Handshake, BarChart3, History, Receipt } from "lucide-react";
+import { TrendingUp, TrendingDown, Trash2, Loader2, Edit2, Handshake, BarChart3, History, Receipt, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase, type Expense } from "@/lib/supabase";
 import { useTrip } from "@/lib/trip-context";
@@ -9,6 +9,7 @@ import { useToast } from "@/components/toast";
 import { calculateSplit } from "@/lib/split-utils";
 import { calculateGlobalBalance } from "@/lib/balance-utils";
 import { EditExpenseDrawer } from "./edit-expense-drawer";
+import { AddExpenseDrawer } from "./add-expense-drawer";
 import { SettleDebtDrawer } from "./settle-debt-drawer";
 import { ConfirmDialog } from "./confirm-dialog";
 import { logActivity } from "@/lib/activity-log";
@@ -124,6 +125,7 @@ export function WalletDashboard() {
   const { toast } = useToast();
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [globalBalance, setGlobalBalance] = useState(0);
+  const [showAddExpense, setShowAddExpense] = useState(false);
   const [loading, setLoading] = useState(true);
 
   const [showHistory, setShowHistory] = useState(false);
@@ -583,6 +585,23 @@ export function WalletDashboard() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Add Expense FAB */}
+      <motion.button
+        initial={{ scale: 0 }}
+        animate={{ scale: 1 }}
+        whileTap={{ scale: 0.9 }}
+        onClick={() => setShowAddExpense(true)}
+        className="fixed bottom-24 right-6 w-14 h-14 rounded-full bg-gradient-to-r from-primary to-violet-600 text-white shadow-xl shadow-primary/30 flex items-center justify-center z-40"
+      >
+        <Plus className="w-6 h-6" />
+      </motion.button>
+
+      <AddExpenseDrawer
+        open={showAddExpense}
+        onOpenChange={setShowAddExpense}
+        onExpenseAdded={loadExpenses}
+      />
     </div>
   );
 }
