@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { WalletDashboard } from "@/components/wallet-dashboard";
 import { AddExpenseDrawer } from "@/components/add-expense-drawer";
+import { ActorSelector } from "@/components/actor-selector";
+import { ActivityLogPanel } from "@/components/activity-log-panel";
 import { Plus, FileDown } from "lucide-react";
 import { motion } from "framer-motion";
 import { useTrip } from "@/lib/trip-context";
@@ -42,21 +44,28 @@ export default function WalletPage() {
             <h1 className="text-3xl font-bold mb-2">Portafoglio</h1>
             <p className="text-muted-foreground">Gestisci le spese del viaggio</p>
           </div>
-          {currentTrip && expenses.length > 0 && (
-            <motion.button
-              whileTap={{ scale: 0.95 }}
-              onClick={handleExport}
-              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-muted hover:bg-muted/80 transition-colors"
-              title="Esporta PDF"
-            >
-              <FileDown className="w-5 h-5" />
-              <span className="hidden sm:inline text-sm font-medium">PDF</span>
-            </motion.button>
-          )}
+          <div className="flex items-center gap-2">
+            {/* Actor Selector - chi sta usando l'app */}
+            <ActorSelector />
+
+            {currentTrip && expenses.length > 0 && (
+              <motion.button
+                whileTap={{ scale: 0.95 }}
+                onClick={handleExport}
+                className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-muted hover:bg-muted/80 transition-colors"
+                title="Esporta PDF"
+              >
+                <FileDown className="w-4 h-4" />
+              </motion.button>
+            )}
+          </div>
         </div>
       </header>
 
       <WalletDashboard />
+
+      {/* Activity Log - nascosto, collapsabile */}
+      <ActivityLogPanel />
 
       {/* FAB */}
       {currentTrip && (

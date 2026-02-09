@@ -7,6 +7,7 @@ import { supabase } from "@/lib/supabase";
 import { useTrip } from "@/lib/trip-context";
 import { MobileDatePicker } from "./mobile-date-picker";
 import { MobileMoneyInput } from "./mobile-money-input";
+import { logActivity } from "@/lib/activity-log";
 
 const CATEGORIES = [
   { id: "food", label: "Cibo", emoji: "🍽️" },
@@ -94,6 +95,17 @@ export function AddExpenseDrawer({ open, onOpenChange }: AddExpenseDrawerProps) 
       });
 
       if (error) throw error;
+
+      // Log activity
+      const catLabel = CATEGORIES.find(c => c.id === category)?.label || category;
+      await logActivity(
+        currentTrip.id,
+        "create",
+        "expense",
+        `ha aggiunto €${amountInEur.toFixed(2)} per ${catLabel}`,
+        undefined,
+        { amount: amountInEur, category, description }
+      );
 
       onOpenChange(false);
       resetForm();

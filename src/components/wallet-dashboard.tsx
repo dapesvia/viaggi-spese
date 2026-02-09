@@ -8,6 +8,7 @@ import { ExpenseStats } from "./expense-stats";
 import { EditExpenseDrawer } from "./edit-expense-drawer";
 import { SettleDebtDrawer } from "./settle-debt-drawer";
 import { ConfirmDialog } from "./confirm-dialog";
+import { logActivity } from "@/lib/activity-log";
 
 const CATEGORY_ICONS: Record<string, string> = {
   food: "🍽️",
@@ -96,6 +97,18 @@ export function WalletDashboard() {
         .eq('id', deleteExpense.id);
 
       if (error) throw error;
+
+      // Log activity
+      if (currentTrip) {
+        await logActivity(
+          currentTrip.id,
+          "delete",
+          "expense",
+          `ha eliminato "${deleteExpense.description || 'spesa'}" (€${deleteExpense.amount_in_eur.toFixed(2)})`,
+          deleteExpense.id
+        );
+      }
+
       setDeleteExpense(null);
       loadExpenses();
     } catch (error) {
