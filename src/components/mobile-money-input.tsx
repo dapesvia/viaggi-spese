@@ -115,8 +115,9 @@ export function MobileMoneyInput({
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
-                        className="fixed inset-0 z-[100] flex items-end justify-center bg-black/60"
+                        className="fixed inset-0 z-[9999] flex items-end justify-center bg-black/60"
                         onClick={() => setIsOpen(false)}
+                        style={{ pointerEvents: 'auto' }}
                     >
                         <motion.div
                             initial={{ y: "100%" }}
@@ -124,7 +125,7 @@ export function MobileMoneyInput({
                             exit={{ y: "100%" }}
                             transition={{ type: "spring", damping: 25, stiffness: 300 }}
                             onClick={(e) => e.stopPropagation()}
-                            className="w-full max-w-md bg-background rounded-t-3xl overflow-hidden"
+                            className="w-full max-w-md bg-background rounded-t-3xl overflow-hidden pointer-events-auto"
                         >
                             {/* Amount Display */}
                             <div className="p-6 border-b border-border">
@@ -190,8 +191,9 @@ export function MobileMoneyInput({
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
-                        className="fixed inset-0 z-[110] flex items-end justify-center bg-black/60"
+                        className="fixed inset-0 z-[10000] flex items-end justify-center bg-black/60"
                         onClick={() => setShowCurrencies(false)}
+                        style={{ pointerEvents: 'auto' }}
                     >
                         <motion.div
                             initial={{ y: "100%" }}
@@ -199,7 +201,7 @@ export function MobileMoneyInput({
                             exit={{ y: "100%" }}
                             transition={{ type: "spring", damping: 25, stiffness: 300 }}
                             onClick={(e) => e.stopPropagation()}
-                            className="w-full max-w-md bg-background rounded-t-3xl max-h-[60vh] overflow-hidden"
+                            className="w-full max-w-md bg-background rounded-t-3xl max-h-[60vh] overflow-hidden pointer-events-auto"
                         >
                             <div className="p-4 border-b border-border">
                                 <h3 className="text-lg font-bold text-center">Seleziona Valuta</h3>

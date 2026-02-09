@@ -133,8 +133,9 @@ export function MobileDatePicker({
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
-                        className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center bg-black/60"
+                        className="fixed inset-0 z-[9999] flex items-end sm:items-center justify-center bg-black/60"
                         onClick={() => setIsOpen(false)}
+                        style={{ pointerEvents: 'auto' }}
                     >
                         <motion.div
                             initial={{ y: "100%" }}
@@ -142,7 +143,7 @@ export function MobileDatePicker({
                             exit={{ y: "100%" }}
                             transition={{ type: "spring", damping: 25, stiffness: 300 }}
                             onClick={(e) => e.stopPropagation()}
-                            className="w-full max-w-md bg-background rounded-t-3xl sm:rounded-3xl overflow-hidden"
+                            className="w-full max-w-md bg-background rounded-t-3xl sm:rounded-3xl overflow-hidden pointer-events-auto"
                         >
                             {/* Header */}
                             <div className="flex items-center justify-between p-4 border-b border-border">
