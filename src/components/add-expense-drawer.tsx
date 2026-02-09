@@ -114,9 +114,6 @@ interface AddExpenseDrawerProps {
 
     setLoading(true);
     try {
-      // Bypass auth: use valid UUID for legacy field
-      const DUMMY_USER_ID = "00000000-0000-0000-0000-000000000000";
-
       const amountNum = parseFloat(amount);
       const amountInEur = convertToEur(amountNum, currency);
 
@@ -126,7 +123,6 @@ interface AddExpenseDrawerProps {
         amount_in_eur: amountInEur,
         category,
         description: description || null,
-        paid_by_user_id: DUMMY_USER_ID,
         payer,
         split_type: splitType,
         expense_date: expenseDate,
