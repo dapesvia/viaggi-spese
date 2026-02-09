@@ -21,6 +21,7 @@ export function CreateTripDrawer({ open, onOpenChange, tripToEdit }: CreateTripD
     const [startDate, setStartDate] = useState("");
     const [endDate, setEndDate] = useState("");
     const [budget, setBudget] = useState("");
+    const [costPayer, setCostPayer] = useState<"alex" | "tina" | "split">("split");
     const [coverUrl, setCoverUrl] = useState("");
     const [coverPreview, setCoverPreview] = useState("");
     const [loading, setLoading] = useState(false);
@@ -33,6 +34,7 @@ export function CreateTripDrawer({ open, onOpenChange, tripToEdit }: CreateTripD
             setStartDate(tripToEdit.start_date);
             setEndDate(tripToEdit.end_date);
             setBudget(tripToEdit.budget ? tripToEdit.budget.toString() : "");
+            setCostPayer(tripToEdit.cost_payer || "split");
             setCoverUrl(tripToEdit.cover_image_url || "");
             setCoverPreview(tripToEdit.cover_image_url || "");
         } else if (!tripToEdit && open) {
@@ -86,6 +88,7 @@ export function CreateTripDrawer({ open, onOpenChange, tripToEdit }: CreateTripD
                 start_date: startDate,
                 end_date: endDate,
                 budget: budget ? parseFloat(budget) : null,
+                cost_payer: costPayer,
                 cover_image_url: coverUrl || null,
                 status: (new Date(startDate) <= new Date() ? "active" : "upcoming") as "active" | "upcoming"
             };
@@ -111,6 +114,7 @@ export function CreateTripDrawer({ open, onOpenChange, tripToEdit }: CreateTripD
         setStartDate("");
         setEndDate("");
         setBudget("");
+        setCostPayer("split");
         setCoverUrl("");
         setCoverPreview("");
     };
@@ -172,13 +176,48 @@ export function CreateTripDrawer({ open, onOpenChange, tripToEdit }: CreateTripD
                                 />
                             </div>
 
-                            {/* Budget con MobileMoneyInput */}
-                            <MobileMoneyInput
-                                value={budget}
-                                onChange={setBudget}
-                                label="💰 Budget (opzionale)"
-                                placeholder="0"
-                            />
+                            {/* Costo Totale Viaggio */}
+                            <div>
+                                <MobileMoneyInput
+                                    value={budget}
+                                    onChange={setBudget}
+                                    label="💰 Costo Totale Viaggio (Volo+Hotel)"
+                                    placeholder="0"
+                                />
+                                <p className="text-xs text-muted-foreground mt-1">
+                                    Inserisci il costo base (es. volo e alloggio pagati in anticipo).
+                                </p>
+                            </div>
+
+                            {/* Chi ha pagato */}
+                            <div className="p-4 bg-muted/30 rounded-xl border border-border/50">
+                                <label className="text-sm font-medium text-muted-foreground mb-3 block">
+                                    Chi ha pagato questo costo iniziale?
+                                </label>
+                                <div className="grid grid-cols-3 gap-2">
+                                    <button
+                                        onClick={() => setCostPayer('alex')}
+                                        className={`p-3 rounded-lg text-sm font-medium transition-all ${costPayer === 'alex' ? 'bg-primary text-primary-foreground shadow-md' : 'bg-background hover:bg-muted text-muted-foreground'}`}
+                                    >
+                                        👤 Alex
+                                    </button>
+                                    <button
+                                        onClick={() => setCostPayer('tina')}
+                                        className={`p-3 rounded-lg text-sm font-medium transition-all ${costPayer === 'tina' ? 'bg-primary text-primary-foreground shadow-md' : 'bg-background hover:bg-muted text-muted-foreground'}`}
+                                    >
+                                        👩 Tina
+                                    </button>
+                                    <button
+                                        onClick={() => setCostPayer('split')}
+                                        className={`p-3 rounded-lg text-sm font-medium transition-all ${costPayer === 'split' ? 'bg-primary text-primary-foreground shadow-md' : 'bg-background hover:bg-muted text-muted-foreground'}`}
+                                    >
+                                        ⚖️ Diviso
+                                    </button>
+                                </div>
+                                <p className="text-xs text-muted-foreground mt-2 text-center">
+                                    {costPayer === 'split' ? 'Pagato separatamente o diviso a metà' : `Pagato interamente da ${costPayer === 'alex' ? 'Alex' : 'Tina'}`}
+                                </p>
+                            </div>
 
                             {/* Cover Image Upload */}
                             <div>

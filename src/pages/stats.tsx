@@ -78,9 +78,9 @@ export default function StatsPage() {
         return {
             name: trip.name.length > 12 ? trip.name.slice(0, 12) + "..." : trip.name,
             speso: Math.round(total),
-            budget: trip.budget || 0
+            costo: trip.budget || 0
         };
-    }).filter(t => t.speso > 0 || t.budget > 0);
+    }).filter(t => t.speso > 0 || t.costo > 0);
 
     // Calcolo Bilancio Globale
     let globalAlexPaid = 0;
@@ -99,6 +99,23 @@ export default function StatsPage() {
             default: return { alex: amount / 2, tina: amount / 2 };
         }
     };
+
+    // 1. Aggiungi il costo iniziale dei viaggi al conteggio
+    trips.forEach(trip => {
+        const tripCost = trip.budget || 0;
+        const tripPayer = (trip.cost_payer as "alex" | "tina" | "split") || 'split';
+        const tripCostPerPerson = tripCost / 2;
+
+        if (tripPayer === 'alex') {
+            globalAlexPaid += tripCost;
+        } else if (tripPayer === 'split') {
+            globalAlexPaid += tripCostPerPerson;
+        }
+        // Se ha pagato Tina, alexPaid non aumenta.
+
+        globalAlexConsumed += tripCostPerPerson;
+        globalTinaConsumed += tripCostPerPerson;
+    });
 
     allExpenses.forEach(e => {
         const amount = e.amount_in_eur;
@@ -327,8 +344,8 @@ export default function StatsPage() {
                                     }}
                                 />
                                 <Legend />
-                                <Bar dataKey="speso" name="Speso" fill="#3b82f6" radius={[0, 4, 4, 0]} />
-                                <Bar dataKey="budget" name="Budget" fill="#10b981" radius={[0, 4, 4, 0]} />
+                                <Bar dataKey="speso" name="Spese Extra" fill="#3b82f6" radius={[0, 4, 4, 0]} />
+                                <Bar dataKey="costo" name="Costo Iniziale" fill="#8b5cf6" radius={[0, 4, 4, 0]} />
                             </BarChart>
                         </ResponsiveContainer>
                     </div>

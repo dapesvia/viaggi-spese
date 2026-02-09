@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { TrendingUp, TrendingDown, Euro, Trash2, Loader2, Edit2, Handshake, BarChart3, History, Receipt } from "lucide-react";
+import { TrendingUp, TrendingDown, Trash2, Loader2, Edit2, Handshake, BarChart3, History, Receipt } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase, type Expense } from "@/lib/supabase";
 import { useTrip } from "@/lib/trip-context";
@@ -159,19 +159,34 @@ export function WalletDashboard() {
   }
 
   const totalSpent = expenses.reduce((sum, exp) => sum + exp.amount_in_eur, 0);
-  const budget = currentTrip.budget || 2000;
-  const budgetPercentage = (totalSpent / budget) * 100;
+  const tripCost = currentTrip.budget || 0;
+  const tripPayer = currentTrip.cost_payer || 'split';
+  const totalTripCost = tripCost + totalSpent;
 
-  // Calculate balance with custom splits
+  // Calculate balance with custom splits AND initial trip cost
   let alexPaid = 0;
   let alexConsumed = 0;
   let tinaConsumed = 0;
 
+  // 1. Add Initial Trip Cost Logic
+  const tripCostPerPerson = tripCost / 2;
+
+  if (tripPayer === 'alex') {
+    alexPaid += tripCost;
+  } else if (tripPayer === 'split') {
+    alexPaid += tripCostPerPerson;
+  }
+  // If Tina paid, alexPaid adds 0.
+
+  // Both consume half the trip cost
+  alexConsumed += tripCostPerPerson;
+  tinaConsumed += tripCostPerPerson;
+
+  // 2. Add Expenses Logic
   expenses.forEach(e => {
     const amount = e.amount_in_eur;
 
     // Who Paid?
-    // Use 'payer' field if available (checked via migration), fallback to legacy logic just in case
     const payer = e.payer || (e.split_type === 'partner' ? 'tina' : 'alex');
 
     if (payer === 'alex') {
@@ -184,8 +199,6 @@ export function WalletDashboard() {
     tinaConsumed += split.tina;
   });
 
-  // Balance > 0: Alex Paid more than consumed -> Tina Owes Alex
-  // Balance < 0: Alex Consumed more than Paid -> Alex Owes Tina
   const balance = alexPaid - alexConsumed;
 
   // Variables for display
@@ -202,6 +215,7 @@ export function WalletDashboard() {
       case 'partner': return '👩 Tina';
       case '70-30': return '📊 70/30';
       case '60-40': return '📊 60/40';
+      case 'custom': return '✏️ Manuale';
       default: return '⚖️ 50/50';
     }
   };
@@ -236,40 +250,53 @@ export function WalletDashboard() {
         </div>
       </div>
 
-      {/* Budget Overview */}
+      {/* Cost Summary Card */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="p-6 rounded-2xl bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/20"
+        className="p-6 rounded-2xl bg-gradient-to-br from-indigo-500/10 to-purple-500/10 border border-indigo-500/20 backdrop-blur-sm"
       >
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <p className="text-sm text-muted-foreground mb-1">Totale Speso</p>
-            <div className="flex items-center gap-2">
-              <Euro className="w-6 h-6 text-primary" />
-              <span className="text-3xl font-bold">{totalSpent.toFixed(2)}</span>
+        <div className="flex flex-col gap-4">
+          <div className="flex justify-between items-end border-b border-border/50 pb-4">
+            <div>
+              <p className="text-sm text-muted-foreground mb-1">Costo Totale Viaggio</p>
+              <div className="flex items-center gap-1">
+                <span className="text-3xl font-bold">€{totalTripCost.toFixed(2)}</span>
+              </div>
+            </div>
+            <div className="text-right">
+              <span className="text-xs px-2 py-1 rounded-full bg-primary/10 text-primary font-medium border border-primary/20">
+                {expenses.length} spese
+              </span>
             </div>
           </div>
-          <div className="text-right">
-            <p className="text-sm text-muted-foreground mb-1">Budget</p>
-            <span className="text-2xl font-semibold">€{budget}</span>
+
+          <div className="grid grid-cols-2 gap-4 pt-2">
+            <div>
+              <p className="text-xs text-muted-foreground mb-1">Volo + Hotel</p>
+              <p className="text-lg font-semibold">€{tripCost.toFixed(2)}</p>
+              <p className="text-[10px] text-muted-foreground">
+                {tripPayer === 'split' ? 'Pagato diviso' : `Pagato da ${tripPayer === 'alex' ? 'Alex' : 'Tina'}`}
+              </p>
+            </div>
+            <div className="text-right">
+              <p className="text-xs text-muted-foreground mb-1">Spese Extra</p>
+              <p className="text-lg font-semibold text-orange-500">+ €{totalSpent.toFixed(2)}</p>
+            </div>
+          </div>
+
+          {/* Progress Bar Visual (Extra Expenses vs Total) */}
+          <div className="relative h-2 bg-muted/50 rounded-full overflow-hidden mt-1">
+            <div
+              className="absolute top-0 left-0 h-full bg-indigo-500/50"
+              style={{ width: `${(tripCost / totalTripCost) * 100}%` }}
+            />
+            <div
+              className="absolute top-0 right-0 h-full bg-orange-500/50"
+              style={{ width: `${(totalSpent / totalTripCost) * 100}%` }}
+            />
           </div>
         </div>
-
-        <div className="relative h-3 bg-muted rounded-full overflow-hidden">
-          <motion.div
-            initial={{ width: 0 }}
-            animate={{ width: `${Math.min(budgetPercentage, 100)}%` }}
-            transition={{ duration: 1, ease: "easeOut" }}
-            className={cn(
-              "h-full rounded-full",
-              budgetPercentage > 90 ? "bg-destructive" : "bg-primary"
-            )}
-          />
-        </div>
-        <p className="text-xs text-muted-foreground mt-2">
-          {budgetPercentage.toFixed(1)}% del budget utilizzato
-        </p>
       </motion.div>
 
       {/* Balance Card */}

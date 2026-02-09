@@ -81,6 +81,7 @@ export type Trip = {
   cover_image_url: string | null;
   status: "upcoming" | "active" | "completed";
   budget: number | null;
+  cost_payer: "alex" | "tina" | "split" | null;
   created_by: string;
   created_at: string;
   updated_at: string;

@@ -1,42 +1,42 @@
 import { type Expense, type Trip } from "./supabase";
 
 const CATEGORY_LABELS: Record<string, string> = {
-    food: "Cibo",
-    transport: "Trasporti",
-    accommodation: "Alloggio",
-    activities: "Attività",
-    shopping: "Shopping",
-    other: "Altro",
+  food: "Cibo",
+  transport: "Trasporti",
+  accommodation: "Alloggio",
+  activities: "Attività",
+  shopping: "Shopping",
+  other: "Altro",
 };
 
 export async function exportTripToPDF(trip: Trip, expenses: Expense[]) {
-    // Calculate totals
-    const total = expenses.reduce((sum, e) => sum + e.amount_in_eur, 0);
+  // Calculate totals
+  const total = expenses.reduce((sum, e) => sum + e.amount_in_eur, 0);
 
-    let alexTotal = 0;
-    let tinaTotal = 0;
+  let alexTotal = 0;
+  let tinaTotal = 0;
 
-    expenses.forEach(e => {
-        if (e.split_type === 'me') {
-            alexTotal += e.amount_in_eur;
-        } else if (e.split_type === 'partner') {
-            tinaTotal += e.amount_in_eur;
-        } else {
-            alexTotal += e.amount_in_eur / 2;
-            tinaTotal += e.amount_in_eur / 2;
-        }
-    });
+  expenses.forEach(e => {
+    if (e.split_type === 'me') {
+      alexTotal += e.amount_in_eur;
+    } else if (e.split_type === 'partner') {
+      tinaTotal += e.amount_in_eur;
+    } else {
+      alexTotal += e.amount_in_eur / 2;
+      tinaTotal += e.amount_in_eur / 2;
+    }
+  });
 
-    const balance = alexTotal - tinaTotal;
+  const balance = alexTotal - tinaTotal;
 
-    // Group by category
-    const byCategory: Record<string, number> = {};
-    expenses.forEach(e => {
-        byCategory[e.category] = (byCategory[e.category] || 0) + e.amount_in_eur;
-    });
+  // Group by category
+  const byCategory: Record<string, number> = {};
+  expenses.forEach(e => {
+    byCategory[e.category] = (byCategory[e.category] || 0) + e.amount_in_eur;
+  });
 
-    // Build HTML content
-    const html = `
+  // Build HTML content
+  const html = `
 <!DOCTYPE html>
 <html>
 <head>
@@ -69,7 +69,7 @@ export async function exportTripToPDF(trip: Trip, expenses: Expense[]) {
   <div class="card">
     <h3>Totale Speso</h3>
     <div class="amount">€${total.toFixed(2)}</div>
-    ${trip.budget ? `<p style="color: #666; margin-top: 8px;">${((total / trip.budget) * 100).toFixed(1)}% del budget di €${trip.budget}</p>` : ''}
+    ${trip.budget ? `<p style="color: #666; margin-top: 8px;">Costo Iniziale: €${trip.budget.toFixed(2)}</p>` : ''}
   </div>
   
   <div class="grid">
@@ -87,8 +87,8 @@ export async function exportTripToPDF(trip: Trip, expenses: Expense[]) {
     <h3>Bilancio</h3>
     <p class="balance ${balance > 0 ? 'positive' : balance < 0 ? 'negative' : ''}">
       ${balance > 5 ? `Tina deve ad Alex €${Math.abs(balance).toFixed(2)}` :
-            balance < -5 ? `Alex deve a Tina €${Math.abs(balance).toFixed(2)}` :
-                'Siete pari! 🎉'}
+      balance < -5 ? `Alex deve a Tina €${Math.abs(balance).toFixed(2)}` :
+        'Siete pari! 🎉'}
     </p>
   </div>
   
@@ -100,8 +100,8 @@ export async function exportTripToPDF(trip: Trip, expenses: Expense[]) {
       </thead>
       <tbody>
         ${Object.entries(byCategory)
-            .sort(([, a], [, b]) => b - a)
-            .map(([cat, amount]) => `
+      .sort(([, a], [, b]) => b - a)
+      .map(([cat, amount]) => `
             <tr>
               <td>${CATEGORY_LABELS[cat] || cat}</td>
               <td class="text-right">€${amount.toFixed(2)}</td>
@@ -120,8 +120,8 @@ export async function exportTripToPDF(trip: Trip, expenses: Expense[]) {
       </thead>
       <tbody>
         ${expenses
-            .sort((a, b) => new Date(a.expense_date).getTime() - new Date(b.expense_date).getTime())
-            .map(e => `
+      .sort((a, b) => new Date(a.expense_date).getTime() - new Date(b.expense_date).getTime())
+      .map(e => `
             <tr>
               <td>${new Date(e.expense_date).toLocaleDateString('it-IT')}</td>
               <td>${e.description || CATEGORY_LABELS[e.category]}</td>
@@ -138,14 +138,14 @@ export async function exportTripToPDF(trip: Trip, expenses: Expense[]) {
 </html>
   `;
 
-    // Open print dialog
-    const printWindow = window.open('', '_blank');
-    if (printWindow) {
-        printWindow.document.write(html);
-        printWindow.document.close();
-        printWindow.focus();
-        setTimeout(() => {
-            printWindow.print();
-        }, 500);
-    }
+  // Open print dialog
+  const printWindow = window.open('', '_blank');
+  if (printWindow) {
+    printWindow.document.write(html);
+    printWindow.document.close();
+    printWindow.focus();
+    setTimeout(() => {
+      printWindow.print();
+    }, 500);
+  }
 }
