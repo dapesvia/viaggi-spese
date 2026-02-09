@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { motion } from "framer-motion";
 import { X, Upload, Loader2 } from "lucide-react";
 import { Drawer } from "vaul";
+import { cn } from "@/lib/utils";
 import { useTrip } from "@/lib/trip-context";
 import { supabase, type Trip } from "@/lib/supabase";
 import { MobileDatePicker } from "./mobile-date-picker";
@@ -21,7 +22,9 @@ export function CreateTripDrawer({ open, onOpenChange, tripToEdit }: CreateTripD
     const [startDate, setStartDate] = useState("");
     const [endDate, setEndDate] = useState("");
     const [budget, setBudget] = useState("");
-    const [costPayer, setCostPayer] = useState<"alex" | "tina" | "split">("split");
+    const [costPayer, setCostPayer] = useState<"alex" | "tina" | "split" | "custom">("split");
+    const [manualAlex, setManualAlex] = useState("");
+    const [manualTina, setManualTina] = useState("");
     const [coverUrl, setCoverUrl] = useState("");
     const [coverPreview, setCoverPreview] = useState("");
     const [loading, setLoading] = useState(false);
@@ -29,18 +32,32 @@ export function CreateTripDrawer({ open, onOpenChange, tripToEdit }: CreateTripD
 
     // Populate form when tripToEdit changes
     useEffect(() => {
-        if (tripToEdit && open) {
+        if (tripToEdit) {
             setName(tripToEdit.name);
             setStartDate(tripToEdit.start_date);
             setEndDate(tripToEdit.end_date);
             setBudget(tripToEdit.budget ? tripToEdit.budget.toString() : "");
             setCostPayer(tripToEdit.cost_payer || "split");
+            setManualAlex(tripToEdit.cost_split_manual_alex?.toString() || "");
+            setManualTina(tripToEdit.cost_split_manual_tina?.toString() || "");
             setCoverUrl(tripToEdit.cover_image_url || "");
             setCoverPreview(tripToEdit.cover_image_url || "");
-        } else if (!tripToEdit && open) {
+        } else {
             resetForm();
         }
     }, [tripToEdit, open]);
+
+    const resetForm = () => {
+        setName("");
+        setStartDate("");
+        setEndDate("");
+        setBudget("");
+        setCostPayer("split");
+        setManualAlex("");
+        setManualTina("");
+        setCoverUrl("");
+        setCoverPreview("");
+    };
 
     const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -89,6 +106,8 @@ export function CreateTripDrawer({ open, onOpenChange, tripToEdit }: CreateTripD
                 end_date: endDate,
                 budget: budget ? parseFloat(budget) : null,
                 cost_payer: costPayer,
+                cost_split_manual_alex: costPayer === 'custom' ? (parseFloat(manualAlex) || 0) : 0,
+                cost_split_manual_tina: costPayer === 'custom' ? (parseFloat(manualTina) || 0) : 0,
                 cover_image_url: coverUrl || null,
                 status: (new Date(startDate) <= new Date() ? "active" : "upcoming") as "active" | "upcoming"
             };
@@ -107,16 +126,6 @@ export function CreateTripDrawer({ open, onOpenChange, tripToEdit }: CreateTripD
         } finally {
             setLoading(false);
         }
-    };
-
-    const resetForm = () => {
-        setName("");
-        setStartDate("");
-        setEndDate("");
-        setBudget("");
-        setCostPayer("split");
-        setCoverUrl("");
-        setCoverPreview("");
     };
 
     return (
@@ -194,28 +203,95 @@ export function CreateTripDrawer({ open, onOpenChange, tripToEdit }: CreateTripD
                                 <label className="text-sm font-medium text-muted-foreground mb-3 block">
                                     Chi ha pagato questo costo iniziale?
                                 </label>
-                                <div className="grid grid-cols-3 gap-2">
+                                <div className="grid grid-cols-2 gap-2">
                                     <button
+                                        type="button"
                                         onClick={() => setCostPayer('alex')}
-                                        className={`p-3 rounded-lg text-sm font-medium transition-all ${costPayer === 'alex' ? 'bg-primary text-primary-foreground shadow-md' : 'bg-background hover:bg-muted text-muted-foreground'}`}
+                                        className={cn(
+                                            "p-3 rounded-lg text-sm font-medium transition-all border",
+                                            costPayer === 'alex'
+                                                ? "bg-primary text-primary-foreground border-primary shadow-md"
+                                                : "bg-background hover:bg-muted text-muted-foreground border-transparent"
+                                        )}
                                     >
                                         👤 Alex
                                     </button>
                                     <button
+                                        type="button"
                                         onClick={() => setCostPayer('tina')}
-                                        className={`p-3 rounded-lg text-sm font-medium transition-all ${costPayer === 'tina' ? 'bg-primary text-primary-foreground shadow-md' : 'bg-background hover:bg-muted text-muted-foreground'}`}
+                                        className={cn(
+                                            "p-3 rounded-lg text-sm font-medium transition-all border",
+                                            costPayer === 'tina'
+                                                ? "bg-primary text-primary-foreground border-primary shadow-md"
+                                                : "bg-background hover:bg-muted text-muted-foreground border-transparent"
+                                        )}
                                     >
                                         👩 Tina
                                     </button>
+                                </div>
+                                <div className="grid grid-cols-2 gap-2 mt-2">
                                     <button
+                                        type="button"
                                         onClick={() => setCostPayer('split')}
-                                        className={`p-3 rounded-lg text-sm font-medium transition-all ${costPayer === 'split' ? 'bg-primary text-primary-foreground shadow-md' : 'bg-background hover:bg-muted text-muted-foreground'}`}
+                                        className={cn(
+                                            "p-3 rounded-lg text-sm font-medium transition-all border",
+                                            costPayer === 'split'
+                                                ? "bg-primary text-primary-foreground border-primary shadow-md"
+                                                : "bg-background hover:bg-muted text-muted-foreground border-transparent"
+                                        )}
                                     >
                                         ⚖️ Diviso
                                     </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setCostPayer('custom')}
+                                        className={cn(
+                                            "p-3 rounded-lg text-sm font-medium transition-all border",
+                                            costPayer === 'custom'
+                                                ? "bg-primary text-primary-foreground border-primary shadow-md"
+                                                : "bg-background hover:bg-muted text-muted-foreground border-transparent"
+                                        )}
+                                    >
+                                        ✏️ Manuale
+                                    </button>
                                 </div>
+
+                                {costPayer === 'custom' && (
+                                    <div className="mt-4 grid grid-cols-2 gap-3 animate-in fade-in slide-in-from-top-2">
+                                        <div>
+                                            <label className="text-xs text-muted-foreground mb-1 block">Pagato da Alex</label>
+                                            <div className="relative">
+                                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">€</span>
+                                                <input
+                                                    type="number"
+                                                    value={manualAlex}
+                                                    onChange={(e) => setManualAlex(e.target.value)}
+                                                    className="w-full pl-7 pr-3 py-2 rounded-lg border bg-background text-sm"
+                                                    placeholder="0.00"
+                                                />
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <label className="text-xs text-muted-foreground mb-1 block">Pagato da Tina</label>
+                                            <div className="relative">
+                                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">€</span>
+                                                <input
+                                                    type="number"
+                                                    value={manualTina}
+                                                    onChange={(e) => setManualTina(e.target.value)}
+                                                    className="w-full pl-7 pr-3 py-2 rounded-lg border bg-background text-sm"
+                                                    placeholder="0.00"
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
                                 <p className="text-xs text-muted-foreground mt-2 text-center">
-                                    {costPayer === 'split' ? 'Pagato separatamente o diviso a metà' : `Pagato interamente da ${costPayer === 'alex' ? 'Alex' : 'Tina'}`}
+                                    {costPayer === 'split' && 'Pagato separatamente o diviso a metà'}
+                                    {costPayer === 'alex' && 'Pagato interamente da Alex'}
+                                    {costPayer === 'tina' && 'Pagato interamente da Tina'}
+                                    {costPayer === 'custom' && 'Importi specifici pagati da ciascuno'}
                                 </p>
                             </div>
 

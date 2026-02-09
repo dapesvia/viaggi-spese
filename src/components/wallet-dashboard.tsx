@@ -173,10 +173,13 @@ export function WalletDashboard() {
 
   if (tripPayer === 'alex') {
     alexPaid += tripCost;
+  } else if (tripPayer === 'tina') {
+    // alexPaid doesn't increase
   } else if (tripPayer === 'split') {
     alexPaid += tripCostPerPerson;
+  } else if (tripPayer === 'custom') {
+    alexPaid += (currentTrip.cost_split_manual_alex || 0);
   }
-  // If Tina paid, alexPaid adds 0.
 
   // Both consume half the trip cost
   alexConsumed += tripCostPerPerson;
@@ -275,9 +278,16 @@ export function WalletDashboard() {
             <div>
               <p className="text-xs text-muted-foreground mb-1">Volo + Hotel</p>
               <p className="text-lg font-semibold">€{tripCost.toFixed(2)}</p>
-              <p className="text-[10px] text-muted-foreground">
-                {tripPayer === 'split' ? 'Pagato diviso' : `Pagato da ${tripPayer === 'alex' ? 'Alex' : 'Tina'}`}
-              </p>
+              {tripPayer === 'custom' ? (
+                <div className="flex flex-col text-[10px] text-muted-foreground leading-tight">
+                  <span>Alex: €{(currentTrip.cost_split_manual_alex || 0).toFixed(0)}</span>
+                  <span>Tina: €{(currentTrip.cost_split_manual_tina || 0).toFixed(0)}</span>
+                </div>
+              ) : (
+                <p className="text-[10px] text-muted-foreground">
+                  {tripPayer === 'split' ? 'Pagato diviso' : `Pagato da ${tripPayer === 'alex' ? 'Alex' : 'Tina'}`}
+                </p>
+              )}
             </div>
             <div className="text-right">
               <p className="text-xs text-muted-foreground mb-1">Spese Extra</p>
