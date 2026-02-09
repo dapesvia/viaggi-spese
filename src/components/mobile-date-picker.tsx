@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronLeft, ChevronRight, X, Check } from "lucide-react";
+import { ChevronLeft, ChevronRight, X } from "lucide-react";
 import { createPortal } from "react-dom";
 import { cn } from "@/lib/utils";
 

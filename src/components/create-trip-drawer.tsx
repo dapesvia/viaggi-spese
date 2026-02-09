@@ -1,6 +1,6 @@
 import { useState, useRef } from "react";
 import { motion } from "framer-motion";
-import { X, Euro, Upload, Loader2 } from "lucide-react";
+import { X, Upload, Loader2 } from "lucide-react";
 import { Drawer } from "vaul";
 import { useTrip } from "@/lib/trip-context";
 import { supabase } from "@/lib/supabase";

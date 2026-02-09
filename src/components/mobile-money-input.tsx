@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Delete, Check } from "lucide-react";
+import { Delete, Check } from "lucide-react";
 import { createPortal } from "react-dom";
 import { cn } from "@/lib/utils";
 
