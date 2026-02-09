@@ -5,6 +5,7 @@ import { Drawer } from "vaul";
 import { supabase } from "@/lib/supabase";
 import { useTrip } from "@/lib/trip-context";
 import { useToast } from "@/components/toast";
+import { MobileMoneyInput } from "./mobile-money-input";
 
 interface SettleDebtDrawerProps {
     open: boolean;
@@ -112,19 +113,17 @@ export function SettleDebtDrawer({ open, onOpenChange, balance, onSettled }: Set
 
                                 <div className="flex flex-col items-center">
                                     <ArrowRight className="w-6 h-6 text-green-500" />
-                                    <div className="flex items-center gap-1 text-green-500 font-bold text-2xl mt-1">
-                                        <span>€</span>
-                                        <input
-                                            type="number"
+                                    <div className="w-full max-w-[140px]">
+                                        <MobileMoneyInput
                                             value={customAmount}
-                                            onChange={(e) => setCustomAmount(e.target.value)}
-                                            className="w-24 bg-transparent text-center focus:outline-none border-b-2 border-green-500/30 focus:border-green-500 transition-colors p-0"
+                                            onChange={setCustomAmount}
+                                            currency="EUR"
                                             placeholder="0.00"
                                         />
                                     </div>
                                     <button
                                         onClick={() => setCustomAmount(Math.abs(balance).toFixed(2))}
-                                        className="text-xs text-green-600/70 mt-1 hover:underline"
+                                        className="text-xs text-green-600/70 mt-2 hover:underline"
                                     >
                                         Totale: €{Math.abs(balance).toFixed(2)}
                                     </button>
