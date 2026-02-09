@@ -103,13 +103,15 @@ export default function StatsPage() {
     // 1. Aggiungi il costo iniziale dei viaggi al conteggio
     trips.forEach(trip => {
         const tripCost = trip.budget || 0;
-        const tripPayer = (trip.cost_payer as "alex" | "tina" | "split") || 'split';
+        const tripPayer = trip.cost_payer || 'split';
         const tripCostPerPerson = tripCost / 2;
 
         if (tripPayer === 'alex') {
             globalAlexPaid += tripCost;
         } else if (tripPayer === 'split') {
             globalAlexPaid += tripCostPerPerson;
+        } else if (tripPayer === 'custom') {
+            globalAlexPaid += (trip.cost_split_manual_alex || 0);
         }
         // Se ha pagato Tina, alexPaid non aumenta.
 
@@ -131,8 +133,14 @@ export default function StatsPage() {
     const globalBalance = globalAlexPaid - globalAlexConsumed;
 
     // Totali
-    const totalSpent = expenses.reduce((sum, e) => sum + e.amount, 0);
-    const totalAllTime = allExpenses.reduce((sum, e) => sum + e.amount, 0);
+    const totalSpentExpenses = expenses.reduce((sum, e) => sum + e.amount, 0);
+    const totalTripCost = currentTrip?.budget || 0;
+    const totalSpent = totalSpentExpenses + totalTripCost;
+
+    const totalAllTimeExpenses = allExpenses.reduce((sum, e) => sum + e.amount, 0);
+    const totalAllTimeTrips = trips.reduce((sum, t) => sum + (t.budget || 0), 0);
+    const totalAllTime = totalAllTimeExpenses + totalAllTimeTrips;
+
     const avgPerTrip = trips.length > 0 ? totalAllTime / trips.length : 0;
 
     if (loading) {

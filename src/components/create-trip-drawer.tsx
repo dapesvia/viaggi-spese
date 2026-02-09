@@ -5,6 +5,7 @@ import { Drawer } from "vaul";
 import { cn } from "@/lib/utils";
 import { useTrip } from "@/lib/trip-context";
 import { supabase, type Trip } from "@/lib/supabase";
+import { compressImage } from "@/lib/image-utils";
 import { MobileDatePicker } from "./mobile-date-picker";
 import { MobileMoneyInput } from "./mobile-money-input";
 
@@ -63,21 +64,23 @@ export function CreateTripDrawer({ open, onOpenChange, tripToEdit }: CreateTripD
         const file = e.target.files?.[0];
         if (!file) return;
 
-        const reader = new FileReader();
-        reader.onload = (event) => {
-            setCoverPreview(event.target?.result as string);
-        };
-        reader.readAsDataURL(file);
-
         setUploading(true);
         try {
-            const fileExt = file.name.split('.').pop();
+            const compressedFile = await compressImage(file);
+
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                setCoverPreview(event.target?.result as string);
+            };
+            reader.readAsDataURL(compressedFile);
+
+            const fileExt = compressedFile.name.split('.').pop();
             const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
             const filePath = `trip-covers/${fileName}`;
 
             const { error: uploadError } = await supabase.storage
                 .from('uploads')
-                .upload(filePath, file);
+                .upload(filePath, compressedFile);
 
             if (uploadError) throw uploadError;
 
