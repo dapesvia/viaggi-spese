@@ -500,15 +500,14 @@ export function WalletDashboard() {
           <h3 className="text-lg font-semibold">Spese Recenti</h3>
           <p className="text-xs text-muted-foreground">← scorri per eliminare</p>
         </div>
-        {expenses.filter(e => !e.description?.startsWith('💸')).length === 0 ? (
+        {realExpenses.length === 0 ? (
           <div className="text-center py-12 text-muted-foreground">
             <p>Nessuna spesa ancora</p>
             <p className="text-sm mt-2">Tocca il pulsante + per aggiungere la prima spesa</p>
           </div>
         ) : (
           <div className="space-y-3">
-            {expenses
-              .filter(e => !e.description?.startsWith('💸'))
+            {realExpenses
               .map((expense, index) => (
                 <motion.div
                   key={expense.id}
