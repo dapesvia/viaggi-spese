@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { TrendingUp, TrendingDown, Euro, Trash2, Loader2, Edit2, Handshake, BarChart3, History, Receipt } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase, type Expense } from "@/lib/supabase";
 import { useTrip } from "@/lib/trip-context";
-import { ExpenseStats } from "./expense-stats";
+
 import { EditExpenseDrawer } from "./edit-expense-drawer";
 import { SettleDebtDrawer } from "./settle-debt-drawer";
 import { ConfirmDialog } from "./confirm-dialog";
@@ -40,7 +41,7 @@ export function WalletDashboard() {
   const { currentTrip } = useTrip();
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showStats, setShowStats] = useState(false);
+
   const [showHistory, setShowHistory] = useState(false);
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
   const [showSettleDrawer, setShowSettleDrawer] = useState(false);
@@ -184,16 +185,13 @@ export function WalletDashboard() {
               <History className="w-5 h-5" />
             </button>
           )}
-          <button
-            onClick={() => setShowStats(!showStats)}
-            className={cn(
-              "p-2 rounded-lg transition-colors",
-              showStats ? "bg-primary text-primary-foreground" : "hover:bg-muted"
-            )}
-            title="Statistiche"
+          <Link
+            to="/stats"
+            className="p-2 rounded-lg hover:bg-muted transition-colors text-foreground"
+            title="Statistiche complete"
           >
             <BarChart3 className="w-5 h-5" />
-          </button>
+          </Link>
         </div>
       </div>
 
@@ -320,7 +318,7 @@ export function WalletDashboard() {
       </AnimatePresence>
 
       {/* Stats Section */}
-      {showStats && <ExpenseStats expenses={expenses} />}
+
 
       {/* Recent Transactions */}
       <div>
