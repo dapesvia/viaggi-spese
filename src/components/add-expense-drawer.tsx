@@ -123,7 +123,6 @@ interface AddExpenseDrawerProps {
         amount_in_eur: amountInEur,
         category,
         description: description || null,
-        paid_by_user_id: null,
         payer,
         split_type: splitType,
         expense_date: expenseDate,
