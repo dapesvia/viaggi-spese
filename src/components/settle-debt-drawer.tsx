@@ -26,12 +26,14 @@ export function SettleDebtDrawer({ open, onOpenChange, balance, onSettled }: Set
 
     // Initialize amount when drawer opens
     useEffect(() => {
-        if (open && Math.abs(balance) > 0) {
+        if (open) {
             setCustomAmount(Math.abs(balance).toFixed(2));
-        } else if (!open) {
+        } else {
             setCustomAmount("");
+            setConfirmStep(false);
         }
-    }, [open, balance]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [open]);
 
     const amount = parseFloat(customAmount) || 0;
 
