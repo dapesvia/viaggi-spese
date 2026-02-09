@@ -7,7 +7,6 @@ import { supabase, type Expense } from "@/lib/supabase";
 import { useTrip } from "@/lib/trip-context";
 import { useToast } from "@/components/toast";
 import { calculateSplit } from "@/lib/split-utils";
-import { calculateGlobalBalance } from "@/lib/balance-utils";
 import { EditExpenseDrawer } from "./edit-expense-drawer";
 import { AddExpenseDrawer } from "./add-expense-drawer";
 import { SettleDebtDrawer } from "./settle-debt-drawer";
@@ -121,10 +120,9 @@ function SwipeableExpenseRow({
 
 
 export function WalletDashboard() {
-  const { currentTrip, trips } = useTrip();
+  const { currentTrip } = useTrip();
   const { toast } = useToast();
   const [expenses, setExpenses] = useState<Expense[]>([]);
-  const [globalBalance, setGlobalBalance] = useState(0);
   const [showAddExpense, setShowAddExpense] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -170,8 +168,7 @@ export function WalletDashboard() {
 
       setExpenses(tripExpenses);
 
-      // Calculate Global Balance
-      setGlobalBalance(calculateGlobalBalance(trips, allExpenses));
+
     } catch (error) {
       console.error('Errore caricamento spese:', error);
     } finally {
@@ -277,9 +274,8 @@ export function WalletDashboard() {
     tinaConsumed += split.tina;
   });
 
-  // Calculate local trip balance for verification or specific display if needed?
-  // We use globalBalance for the main card as requested.
-  const balance = globalBalance;
+  // Calculate local trip balance
+  const balance = alexPaid - alexConsumed;
 
   // For display "Tu hai speso" / "Tina ha speso", we want real consumption excluding settlements
   // We re-calculate based on realExpenses
@@ -418,7 +414,7 @@ export function WalletDashboard() {
       >
         <div className="flex items-center justify-between mb-6 relative z-10">
           <h3 className="text-xl font-bold flex items-center gap-2">
-            ⚖️ Bilancio Totale
+            ⚖️ Bilancio Viaggio
           </h3>
           {Math.abs(balance) >= 1 && (
             <motion.button
