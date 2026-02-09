@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { WalletDashboard } from "@/components/wallet-dashboard";
 import { AddExpenseDrawer } from "@/components/add-expense-drawer";
 import { ActorSelector } from "@/components/actor-selector";
+import { TripSelector } from "@/components/trip-selector";
 import { ActivityLogPanel } from "@/components/activity-log-panel";
 import { Plus, FileDown } from "lucide-react";
 import { motion } from "framer-motion";
@@ -17,6 +18,8 @@ export default function WalletPage() {
   useEffect(() => {
     if (currentTrip) {
       loadExpenses();
+    } else {
+      setExpenses([]);
     }
   }, [currentTrip]);
 
@@ -38,16 +41,14 @@ export default function WalletPage() {
 
   return (
     <div className="container max-w-2xl mx-auto px-4 py-6">
-      <header className="mb-6">
+      <header className="mb-6 space-y-4">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold mb-2">Portafoglio</h1>
-            <p className="text-muted-foreground">Gestisci le spese del viaggio</p>
+            <h1 className="text-3xl font-bold">Portafoglio</h1>
+            <p className="text-muted-foreground text-sm">Gestisci le spese</p>
           </div>
           <div className="flex items-center gap-2">
-            {/* Actor Selector - chi sta usando l'app */}
             <ActorSelector />
-
             {currentTrip && expenses.length > 0 && (
               <motion.button
                 whileTap={{ scale: 0.95 }}
@@ -60,6 +61,9 @@ export default function WalletPage() {
             )}
           </div>
         </div>
+
+        {/* Trip Selector */}
+        <TripSelector />
       </header>
 
       <WalletDashboard />
