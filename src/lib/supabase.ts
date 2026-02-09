@@ -100,10 +100,13 @@ export type Expense = {
   amount: number;
   original_currency: string;
   amount_in_eur: number;
-  category: "food" | "transport" | "accommodation" | "activities" | "shopping" | "other";
+  category: "food" | "transport" | "accommodation" | "activities" | "shopping" | "other" | "general";
   description: string | null;
-  paid_by_user_id: string;
-  split_type: "equal" | "me" | "partner" | "70-30" | "60-40";
+  paid_by_user_id: string; // Legacy/unused? Keeping for now.
+  payer: "alex" | "tina"; // New field
+  split_type: "equal" | "me" | "partner" | "70-30" | "60-40" | "custom";
+  split_manual_alex?: number; // New field
+  split_manual_tina?: number; // New field
   receipt_url: string | null;
   expense_date: string;
   created_at: string;

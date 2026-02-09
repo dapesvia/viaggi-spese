@@ -11,13 +11,15 @@ const CATEGORIES = [
     { id: "accommodation", label: "Alloggio", emoji: "🏨" },
     { id: "activities", label: "Attività", emoji: "🎭" },
     { id: "shopping", label: "Shopping", emoji: "🛍️" },
+    { id: "general", label: "Generali", emoji: "🛒" },
     { id: "other", label: "Altro", emoji: "💰" },
 ];
 
 const SPLIT_OPTIONS = [
-    { id: "equal", label: "Diviso 50/50", icon: "⚖️" },
-    { id: "me", label: "Solo Alex", icon: "👤" },
-    { id: "partner", label: "Solo Tina", icon: "👥" },
+    { id: "equal", label: "50/50", detail: "Diviso a metà", icon: "⚖️" },
+    { id: "me", label: "Solo per me", detail: "Pago solo io", icon: "👤" },
+    { id: "partner", label: "Solo per lei", detail: "Paga solo lei", icon: "👩" },
+    { id: "custom", label: "Manuale", detail: "Decidi importi", icon: "✍️" },
 ];
 
 interface EditExpenseDrawerProps {
@@ -31,6 +33,9 @@ export function EditExpenseDrawer({ expense, open, onOpenChange, onSaved }: Edit
     const [amount, setAmount] = useState("");
     const [category, setCategory] = useState("food");
     const [splitType, setSplitType] = useState("equal");
+    const [payer, setPayer] = useState<"alex" | "tina">("alex");
+    const [manualAlex, setManualAlex] = useState("");
+    const [manualTina, setManualTina] = useState("");
     const [description, setDescription] = useState("");
     const [expenseDate, setExpenseDate] = useState("");
     const [loading, setLoading] = useState(false);
@@ -40,6 +45,9 @@ export function EditExpenseDrawer({ expense, open, onOpenChange, onSaved }: Edit
             setAmount(expense.amount_in_eur.toString());
             setCategory(expense.category);
             setSplitType(expense.split_type);
+            setPayer(expense.payer || (expense.split_type === 'partner' ? 'tina' : 'alex'));
+            setManualAlex(expense.split_manual_alex?.toString() || "");
+            setManualTina(expense.split_manual_tina?.toString() || "");
             setDescription(expense.description || "");
             setExpenseDate(expense.expense_date.split('T')[0]);
         }
@@ -50,16 +58,24 @@ export function EditExpenseDrawer({ expense, open, onOpenChange, onSaved }: Edit
 
         setLoading(true);
         try {
+            const updateData: any = {
+                amount: parseFloat(amount),
+                amount_in_eur: parseFloat(amount),
+                category,
+                split_type: splitType,
+                payer,
+                description: description || null,
+                expense_date: expenseDate,
+            };
+
+            if (splitType === 'custom') {
+                updateData.split_manual_alex = parseFloat(manualAlex) || 0;
+                updateData.split_manual_tina = parseFloat(manualTina) || 0;
+            }
+
             const { error } = await supabase
                 .from('expenses')
-                .update({
-                    amount: parseFloat(amount),
-                    amount_in_eur: parseFloat(amount),
-                    category,
-                    split_type: splitType,
-                    description: description || null,
-                    expense_date: expenseDate,
-                })
+                .update(updateData)
                 .eq('id', expense.id);
 
             if (error) throw error;
@@ -135,28 +151,53 @@ export function EditExpenseDrawer({ expense, open, onOpenChange, onSaved }: Edit
                             </div>
                         </div>
 
+                        {/* Payer Toggle */}
+                        <div className="mb-4">
+                            <label className="text-sm font-medium text-muted-foreground mb-2 block">Chi ha pagato</label>
+                            <div className="flex p-1 bg-muted rounded-xl">
+                                <button onClick={() => setPayer('alex')} className={cn("flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-all", payer === 'alex' ? "bg-background text-primary shadow" : "text-muted-foreground")}>👤 Alex</button>
+                                <button onClick={() => setPayer('tina')} className={cn("flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-all", payer === 'tina' ? "bg-background text-primary shadow" : "text-muted-foreground")}>👩 Tina</button>
+                            </div>
+                        </div>
+
                         {/* Split Type */}
                         <div className="mb-4">
                             <label className="text-sm font-medium text-muted-foreground mb-2 block">
-                                Chi paga
+                                Come dividere
                             </label>
-                            <div className="grid grid-cols-3 gap-2">
+                            <div className="grid grid-cols-4 gap-2">
                                 {SPLIT_OPTIONS.map((opt) => (
                                     <button
                                         key={opt.id}
                                         onClick={() => setSplitType(opt.id)}
                                         className={cn(
-                                            "p-3 rounded-xl border-2 transition-all",
+                                            "p-2 rounded-xl border-2 transition-all",
                                             splitType === opt.id
                                                 ? "border-primary bg-primary/10"
                                                 : "border-border hover:border-primary/50"
                                         )}
                                     >
-                                        <div className="text-xl mb-1">{opt.icon}</div>
-                                        <div className="text-xs font-medium">{opt.label}</div>
+                                        <div className="text-lg mb-0.5">{opt.icon}</div>
+                                        <div className="text-[10px] font-medium leading-tight">{opt.label}</div>
                                     </button>
                                 ))}
                             </div>
+                            <p className="text-xs text-muted-foreground mt-2 text-center">
+                                {SPLIT_OPTIONS.find(o => o.id === splitType)?.detail}
+                            </p>
+
+                            {splitType === 'custom' && (
+                                <div className="mt-4 grid grid-cols-2 gap-4 p-4 bg-muted/30 rounded-xl">
+                                    <div>
+                                        <label className="text-xs font-medium mb-1 block">Quota Alex (€)</label>
+                                        <input type="number" value={manualAlex} onChange={(e) => setManualAlex(e.target.value)} className="w-full p-2 rounded-lg border border-border bg-background" placeholder="0.00" />
+                                    </div>
+                                    <div>
+                                        <label className="text-xs font-medium mb-1 block">Quota Tina (€)</label>
+                                        <input type="number" value={manualTina} onChange={(e) => setManualTina(e.target.value)} className="w-full p-2 rounded-lg border border-border bg-background" placeholder="0.00" />
+                                    </div>
+                                </div>
+                            )}
                         </div>
 
                         {/* Date */}

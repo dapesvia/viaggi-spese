@@ -21,7 +21,8 @@ const CATEGORY_ICONS: Record<string, string> = {
 };
 
 // Calculate split amounts based on split type
-function calculateSplit(amount: number, splitType: string): { alex: number; tina: number } {
+// Calculate split amounts based on split type
+function calculateSplit(amount: number, splitType: string, manualAlex: number = 0, manualTina: number = 0): { alex: number; tina: number } {
   switch (splitType) {
     case 'me':
       return { alex: amount, tina: 0 };
@@ -31,11 +32,55 @@ function calculateSplit(amount: number, splitType: string): { alex: number; tina
       return { alex: amount * 0.7, tina: amount * 0.3 };
     case '60-40':
       return { alex: amount * 0.6, tina: amount * 0.4 };
+    case 'custom':
+      return { alex: manualAlex, tina: manualTina };
     case 'equal':
     default:
       return { alex: amount / 2, tina: amount / 2 };
   }
 }
+
+// ...
+
+// In WalletDashboard component:
+
+// Calculate balance
+// Logic: 
+// Credit = Paid - Consumed
+// If Alex paid 100 and consumed 50, credit is +50.
+// If Tina paid 0 and consumed 50, credit is -50.
+// Net Balance defined as "How much Tina owes Alex" = AlexCredit - TinaCredit? 
+// Wait.
+// Simplest: 
+// Balance > 0 implies Tina owes Alex.
+// Balance = (AlexPaid - AlexConsumed) - (TinaPaid - TinaConsumed)? No.
+// Balance = (AlexPaid - AlexConsumed).
+// Check: Alex pays 100 (50/50). Paid=100. Consumed=50. Balance = +50. Tina owes Alex 50. Correct.
+// Check: Tina pays 100 (50/50). Paid=0. Consumed=50. Balance = -50. Alex owes Tina 50. Correct.
+
+let alexPaid = 0;
+let alexConsumed = 0;
+
+expenses.forEach(e => {
+  // Who Paid?
+  const amount = e.amount_in_eur;
+  if (e.payer === 'alex') {
+    alexPaid += amount;
+  } else if (e.payer === 'tina') {
+    // tinaPaid += amount;
+  } else {
+    // Fallback for old data if migration missed something (shouldn't happen with default)
+    // detailed logic: if split_type was 'partner', tina paid. else alex.
+    if (e.split_type === 'partner') { /* tina paid */ }
+    else { alexPaid += amount; }
+  }
+
+  // Who Consumed?
+  const split = calculateSplit(e.amount_in_eur, e.split_type, e.split_manual_alex, e.split_manual_tina);
+  alexConsumed += split.alex;
+});
+
+const balance = alexPaid - alexConsumed; // Positive: Tina owes Alex. Negative: Alex owes Tina.
 
 export function WalletDashboard() {
   const { currentTrip } = useTrip();
@@ -140,16 +185,34 @@ export function WalletDashboard() {
   const budgetPercentage = (totalSpent / budget) * 100;
 
   // Calculate balance with custom splits
-  let alexTotal = 0;
-  let tinaTotal = 0;
+  let alexPaid = 0;
+  let alexConsumed = 0;
+  let tinaConsumed = 0;
 
   expenses.forEach(e => {
-    const split = calculateSplit(e.amount_in_eur, e.split_type);
-    alexTotal += split.alex;
-    tinaTotal += split.tina;
+    const amount = e.amount_in_eur;
+
+    // Who Paid?
+    // Use 'payer' field if available (checked via migration), fallback to legacy logic just in case
+    const payer = e.payer || (e.split_type === 'partner' ? 'tina' : 'alex');
+
+    if (payer === 'alex') {
+      alexPaid += amount;
+    }
+
+    // Who Consumed?
+    const split = calculateSplit(amount, e.split_type, e.split_manual_alex, e.split_manual_tina);
+    alexConsumed += split.alex;
+    tinaConsumed += split.tina;
   });
 
-  const balance = alexTotal - tinaTotal;
+  // Balance > 0: Alex Paid more than consumed -> Tina Owes Alex
+  // Balance < 0: Alex Consumed more than Paid -> Alex Owes Tina
+  const balance = alexPaid - alexConsumed;
+
+  // Variables for display
+  const alexTotal = alexConsumed;
+  const tinaTotal = tinaConsumed;
 
   // Get settlement history
   const settlements = expenses.filter(e => e.description?.startsWith('💸'));
