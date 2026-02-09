@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { X, Clock, MapPin, FileText, Tag } from "lucide-react";
 import { Drawer } from "vaul";
@@ -18,9 +18,10 @@ interface AddItineraryDrawerProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
     onSaved: () => void;
+    defaultDate?: string; // YYYY-MM-DD format to pre-fill
 }
 
-export function AddItineraryDrawer({ open, onOpenChange, onSaved }: AddItineraryDrawerProps) {
+export function AddItineraryDrawer({ open, onOpenChange, onSaved, defaultDate }: AddItineraryDrawerProps) {
     const { currentTrip } = useTrip();
 
     const [type, setType] = useState("activity");
@@ -30,6 +31,13 @@ export function AddItineraryDrawer({ open, onOpenChange, onSaved }: AddItinerary
     const [locationName, setLocationName] = useState("");
     const [bookingRef, setBookingRef] = useState("");
     const [loading, setLoading] = useState(false);
+
+    // Pre-fill date when drawer opens with a defaultDate
+    useEffect(() => {
+        if (open && defaultDate && !datetime) {
+            setDatetime(`${defaultDate}T09:00`);
+        }
+    }, [open, defaultDate]);
 
     const handleSave = async () => {
         if (!title || !datetime || !currentTrip) return;

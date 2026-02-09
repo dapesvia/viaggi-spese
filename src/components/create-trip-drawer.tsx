@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { motion } from "framer-motion";
-import { X, Upload, Loader2 } from "lucide-react";
+import { X, Upload, Loader2, MapPin, Building2 } from "lucide-react";
 import { Drawer } from "vaul";
 import { cn } from "@/lib/utils";
 import { useTrip } from "@/lib/trip-context";
@@ -14,6 +14,16 @@ interface CreateTripDrawerProps {
     onOpenChange: (open: boolean) => void;
     tripToEdit?: Trip | null;
 }
+
+const ACCOMMODATION_TYPES = [
+    { id: "hotel", label: "Hotel", emoji: "🏨" },
+    { id: "airbnb", label: "Airbnb", emoji: "🏠" },
+    { id: "bnb", label: "B&B", emoji: "🛏️" },
+    { id: "apartment", label: "Appartamento", emoji: "🏢" },
+    { id: "hostel", label: "Ostello", emoji: "🏕️" },
+    { id: "friends", label: "Amici", emoji: "👥" },
+    { id: "other", label: "Altro", emoji: "📍" },
+];
 
 export function CreateTripDrawer({ open, onOpenChange, tripToEdit }: CreateTripDrawerProps) {
     const { createTrip, updateTrip } = useTrip();
@@ -31,6 +41,11 @@ export function CreateTripDrawer({ open, onOpenChange, tripToEdit }: CreateTripD
     const [loading, setLoading] = useState(false);
     const [uploading, setUploading] = useState(false);
 
+    // New fields
+    const [destinationAddress, setDestinationAddress] = useState("");
+    const [accommodationName, setAccommodationName] = useState("");
+    const [accommodationType, setAccommodationType] = useState("");
+
     // Populate form when tripToEdit changes
     useEffect(() => {
         if (tripToEdit) {
@@ -43,6 +58,9 @@ export function CreateTripDrawer({ open, onOpenChange, tripToEdit }: CreateTripD
             setManualTina(tripToEdit.cost_split_manual_tina?.toString() || "");
             setCoverUrl(tripToEdit.cover_image_url || "");
             setCoverPreview(tripToEdit.cover_image_url || "");
+            setDestinationAddress(tripToEdit.destination_address || "");
+            setAccommodationName(tripToEdit.accommodation_name || "");
+            setAccommodationType(tripToEdit.accommodation_type || "");
         } else {
             resetForm();
         }
@@ -58,6 +76,9 @@ export function CreateTripDrawer({ open, onOpenChange, tripToEdit }: CreateTripD
         setManualTina("");
         setCoverUrl("");
         setCoverPreview("");
+        setDestinationAddress("");
+        setAccommodationName("");
+        setAccommodationType("");
     };
 
     const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -112,6 +133,9 @@ export function CreateTripDrawer({ open, onOpenChange, tripToEdit }: CreateTripD
                 cost_split_manual_alex: costPayer === 'custom' ? (parseFloat(manualAlex) || 0) : 0,
                 cost_split_manual_tina: costPayer === 'custom' ? (parseFloat(manualTina) || 0) : 0,
                 cover_image_url: coverUrl || null,
+                destination_address: destinationAddress || null,
+                accommodation_name: accommodationName || null,
+                accommodation_type: accommodationType || null,
                 status: (new Date(startDate) <= new Date() ? "active" : "upcoming") as "active" | "upcoming"
             };
 
@@ -186,6 +210,61 @@ export function CreateTripDrawer({ open, onOpenChange, tripToEdit }: CreateTripD
                                     label="📅 Data fine"
                                     placeholder="Ritorno"
                                 />
+                            </div>
+
+                            {/* Destinazione / Indirizzo */}
+                            <div>
+                                <label className="text-sm font-medium text-muted-foreground mb-2 block">
+                                    <MapPin className="w-4 h-4 inline mr-1" />
+                                    Indirizzo / Località
+                                </label>
+                                <input
+                                    type="text"
+                                    value={destinationAddress}
+                                    onChange={(e) => setDestinationAddress(e.target.value)}
+                                    placeholder="Es: Via Roma 15, Parma oppure Skofije, Slovenia"
+                                    className="w-full p-4 rounded-xl border-2 border-border bg-background focus:border-primary focus:outline-none transition-colors text-base"
+                                />
+                                <p className="text-xs text-muted-foreground mt-1">
+                                    L'indirizzo o la zona dove sei stato
+                                </p>
+                            </div>
+
+                            {/* Struttura / Alloggio */}
+                            <div className="p-4 bg-muted/30 rounded-xl border border-border/50">
+                                <label className="text-sm font-medium text-muted-foreground mb-3 block">
+                                    <Building2 className="w-4 h-4 inline mr-1" />
+                                    Dove hai dormito? (opzionale)
+                                </label>
+
+                                {/* Nome struttura */}
+                                <input
+                                    type="text"
+                                    value={accommodationName}
+                                    onChange={(e) => setAccommodationName(e.target.value)}
+                                    placeholder="Es: Hotel Belvedere, Airbnb Centro Storico..."
+                                    className="w-full p-3 rounded-xl border-2 border-border bg-background focus:border-primary focus:outline-none transition-colors text-sm mb-3"
+                                />
+
+                                {/* Tipo struttura */}
+                                <div className="flex flex-wrap gap-2">
+                                    {ACCOMMODATION_TYPES.map((acc) => (
+                                        <button
+                                            key={acc.id}
+                                            type="button"
+                                            onClick={() => setAccommodationType(accommodationType === acc.id ? "" : acc.id)}
+                                            className={cn(
+                                                "px-3 py-2 rounded-xl text-xs font-medium transition-all border flex items-center gap-1.5",
+                                                accommodationType === acc.id
+                                                    ? "bg-primary text-primary-foreground border-primary shadow-md"
+                                                    : "bg-background hover:bg-muted text-muted-foreground border-border"
+                                            )}
+                                        >
+                                            <span>{acc.emoji}</span>
+                                            <span>{acc.label}</span>
+                                        </button>
+                                    ))}
+                                </div>
                             </div>
 
                             {/* Costo Totale Viaggio */}

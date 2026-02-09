@@ -1,11 +1,11 @@
-import { useState } from "react";
-import { Plus, Loader2, Plane, Trash2, Edit2 } from "lucide-react";
+import { useState, useMemo } from "react";
+import { Plus, Loader2, Plane, Trash2, Edit2, Search, X, CalendarDays } from "lucide-react";
 import { TripCard } from "@/components/trip-card";
 import { CreateTripDrawer } from "@/components/create-trip-drawer";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { useTrip } from "@/lib/trip-context";
 import { supabase, type Trip } from "@/lib/supabase";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 
 export default function HomePage() {
   const { trips, currentTrip, loading, selectTrip, refreshTrips } = useTrip();
@@ -13,6 +13,11 @@ export default function HomePage() {
   const [tripToEdit, setTripToEdit] = useState<Trip | null>(null);
   const [deleteTrip, setDeleteTrip] = useState<{ id: string; name: string } | null>(null);
   const [deleting, setDeleting] = useState(false);
+
+  // Search & filter state
+  const [searchQuery, setSearchQuery] = useState("");
+  const [showFilters, setShowFilters] = useState(false);
+  const [filterMonth, setFilterMonth] = useState("");
 
   const handleDeleteTrip = async () => {
     if (!deleteTrip) return;
@@ -36,6 +41,35 @@ export default function HomePage() {
     }
   };
 
+  // Filtered trips
+  const filteredTrips = useMemo(() => {
+    let result = trips;
+
+    // Filter by name
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase().trim();
+      result = result.filter(t => t.name.toLowerCase().includes(q));
+    }
+
+    // Filter by month (YYYY-MM format)
+    if (filterMonth) {
+      result = result.filter(t => {
+        const start = t.start_date.slice(0, 7); // YYYY-MM
+        const end = t.end_date.slice(0, 7);
+        return start <= filterMonth && end >= filterMonth;
+      });
+    }
+
+    return result;
+  }, [trips, searchQuery, filterMonth]);
+
+  const hasActiveFilters = searchQuery.trim() !== "" || filterMonth !== "";
+
+  const clearFilters = () => {
+    setSearchQuery("");
+    setFilterMonth("");
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -47,7 +81,7 @@ export default function HomePage() {
   return (
     <div className="container max-w-2xl mx-auto px-4 py-6">
       {/* Header */}
-      <header className="mb-8">
+      <header className="mb-6">
         <div className="flex items-center gap-3 mb-4">
           <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center">
             <Plane className="w-5 h-5 text-white" />
@@ -58,7 +92,94 @@ export default function HomePage() {
           </div>
         </div>
 
-        <h2 className="text-2xl font-bold">I Vostri Viaggi</h2>
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-2xl font-bold">I Vostri Viaggi</h2>
+          {trips.length > 0 && (
+            <button
+              onClick={() => setShowFilters(!showFilters)}
+              className={`p-2.5 rounded-xl transition-all ${showFilters || hasActiveFilters
+                ? "bg-primary/20 text-primary border border-primary/30"
+                : "bg-muted text-muted-foreground hover:bg-muted/80"
+                }`}
+            >
+              <Search className="w-5 h-5" />
+            </button>
+          )}
+        </div>
+
+        {/* Search & Filter Bar */}
+        <AnimatePresence>
+          {showFilters && trips.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.25 }}
+              className="overflow-hidden"
+            >
+              <div className="space-y-3 pb-2">
+                {/* Search input */}
+                <div className="relative">
+                  <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Cerca per nome..."
+                    className="w-full pl-10 pr-10 py-3 rounded-xl bg-muted/50 border border-border focus:border-primary/50 focus:bg-background transition-all outline-none text-sm"
+                  />
+                  {searchQuery && (
+                    <button
+                      onClick={() => setSearchQuery("")}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-full hover:bg-muted transition-colors"
+                    >
+                      <X className="w-3.5 h-3.5 text-muted-foreground" />
+                    </button>
+                  )}
+                </div>
+
+                {/* Month filter */}
+                <div className="relative">
+                  <CalendarDays className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <input
+                    type="month"
+                    value={filterMonth}
+                    onChange={(e) => setFilterMonth(e.target.value)}
+                    className="w-full pl-10 pr-4 py-3 rounded-xl bg-muted/50 border border-border focus:border-primary/50 focus:bg-background transition-all outline-none text-sm appearance-none"
+                    style={{ colorScheme: "dark" }}
+                  />
+                  {filterMonth && (
+                    <button
+                      onClick={() => setFilterMonth("")}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-full hover:bg-muted transition-colors"
+                    >
+                      <X className="w-3.5 h-3.5 text-muted-foreground" />
+                    </button>
+                  )}
+                </div>
+
+                {/* Active filter indicator */}
+                {hasActiveFilters && (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="flex items-center justify-between"
+                  >
+                    <p className="text-xs text-muted-foreground">
+                      {filteredTrips.length} {filteredTrips.length === 1 ? "viaggio trovato" : "viaggi trovati"}
+                    </p>
+                    <button
+                      onClick={clearFilters}
+                      className="text-xs text-primary hover:underline font-medium"
+                    >
+                      Cancella filtri
+                    </button>
+                  </motion.div>
+                )}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </header>
 
       {/* Trips List */}
@@ -83,9 +204,27 @@ export default function HomePage() {
             Crea il primo viaggio
           </button>
         </motion.div>
+      ) : filteredTrips.length === 0 && hasActiveFilters ? (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="text-center py-12"
+        >
+          <Search className="w-12 h-12 text-muted-foreground/30 mx-auto mb-4" />
+          <h3 className="text-lg font-medium mb-2">Nessun risultato</h3>
+          <p className="text-muted-foreground text-sm mb-4">
+            Nessun viaggio corrisponde alla tua ricerca
+          </p>
+          <button
+            onClick={clearFilters}
+            className="text-sm text-primary hover:underline font-medium"
+          >
+            Cancella filtri
+          </button>
+        </motion.div>
       ) : (
         <div className="space-y-4">
-          {trips.map((trip, index) => (
+          {filteredTrips.map((trip, index) => (
             <motion.div
               key={trip.id}
               initial={{ opacity: 0, y: 20 }}

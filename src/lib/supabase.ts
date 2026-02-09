@@ -84,6 +84,9 @@ export type Trip = {
   cost_payer: "alex" | "tina" | "split" | "custom" | null;
   cost_split_manual_alex: number;
   cost_split_manual_tina: number;
+  destination_address: string | null;
+  accommodation_name: string | null;
+  accommodation_type: string | null;
   created_by: string;
   created_at: string;
   updated_at: string;
