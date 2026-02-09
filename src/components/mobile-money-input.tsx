@@ -116,7 +116,7 @@ export function MobileMoneyInput({
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
                         className="fixed inset-0 z-[9999] flex items-end justify-center bg-black/60"
-                        onClick={() => setIsOpen(false)}
+                        onClick={handleConfirm}
                         style={{ pointerEvents: 'auto' }}
                     >
                         <motion.div
