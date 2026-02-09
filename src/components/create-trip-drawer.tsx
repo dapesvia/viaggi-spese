@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { useTrip } from "@/lib/trip-context";
 import { supabase, type Trip } from "@/lib/supabase";
 import { compressImage } from "@/lib/image-utils";
+import { useToast } from "@/components/toast";
 import { MobileDatePicker } from "./mobile-date-picker";
 import { MobileMoneyInput } from "./mobile-money-input";
 
@@ -27,6 +28,7 @@ const ACCOMMODATION_TYPES = [
 
 export function CreateTripDrawer({ open, onOpenChange, tripToEdit }: CreateTripDrawerProps) {
     const { createTrip, updateTrip } = useTrip();
+    const { toast } = useToast();
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const [name, setName] = useState("");
@@ -112,7 +114,7 @@ export function CreateTripDrawer({ open, onOpenChange, tripToEdit }: CreateTripD
             setCoverUrl(publicUrl);
         } catch (error) {
             console.error('Errore upload:', error);
-            alert('Errore nel caricare l\'immagine. Riprova.');
+            toast("Errore nel caricare l'immagine. Riprova.", 'error');
             setCoverPreview("");
         } finally {
             setUploading(false);
@@ -149,7 +151,7 @@ export function CreateTripDrawer({ open, onOpenChange, tripToEdit }: CreateTripD
             resetForm();
         } catch (error) {
             console.error("Errore salvataggio viaggio:", error);
-            alert("Errore nel salvare il viaggio");
+            toast("Errore nel salvare il viaggio", 'error');
         } finally {
             setLoading(false);
         }

@@ -7,6 +7,8 @@ import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import { TrendingUp, PiggyBank, Calendar, MapPin, ChevronLeft, ChevronRight, X, CalendarDays } from "lucide-react";
 import { createPortal } from "react-dom";
+import { calculateSplit } from "@/lib/split-utils";
+import { StatsSkeleton } from "@/components/skeleton";
 
 const CATEGORY_COLORS: Record<string, string> = {
     transport: "#3b82f6",
@@ -469,17 +471,7 @@ export default function StatsPage() {
     let globalAlexConsumed = 0;
     let globalTinaConsumed = 0;
 
-    const calculateSplit = (amount: number, splitType: string, manualAlex: number = 0, manualTina: number = 0) => {
-        switch (splitType) {
-            case 'me': return { alex: amount, tina: 0 };
-            case 'partner': return { alex: 0, tina: amount };
-            case '70-30': return { alex: amount * 0.7, tina: amount * 0.3 };
-            case '60-40': return { alex: amount * 0.6, tina: amount * 0.4 };
-            case 'custom': return { alex: manualAlex, tina: manualTina };
-            case 'equal':
-            default: return { alex: amount / 2, tina: amount / 2 };
-        }
-    };
+
 
     trips.forEach(trip => {
         const tripCost = trip.budget || 0;
@@ -525,10 +517,11 @@ export default function StatsPage() {
     if (loading) {
         return (
             <div className="container max-w-2xl mx-auto px-4 py-6">
-                <div className="animate-pulse space-y-4">
-                    <div className="h-8 bg-muted rounded w-1/3" />
-                    <div className="h-64 bg-muted rounded" />
+                <div className="mb-6 space-y-3">
+                    <div className="h-6 w-32 bg-muted rounded animate-pulse" />
+                    <div className="h-4 w-48 bg-muted rounded animate-pulse" />
                 </div>
+                <StatsSkeleton />
             </div>
         );
     }
@@ -537,8 +530,8 @@ export default function StatsPage() {
         <div className="container max-w-2xl mx-auto px-4 py-6 pb-24">
             <header className="mb-6 space-y-4">
                 <div>
-                    <h1 className="text-3xl font-bold">Statistiche</h1>
-                    <p className="text-muted-foreground text-sm">Analizza le tue spese</p>
+                    <h1 className="text-3xl font-bold tracking-tight">Statistiche</h1>
+                    <p className="text-muted-foreground text-xs">Analizza le tue spese 📊</p>
                 </div>
                 <TripSelector />
             </header>
@@ -694,8 +687,13 @@ export default function StatsPage() {
                                     contentStyle={{
                                         backgroundColor: 'hsl(var(--card))',
                                         border: '1px solid hsl(var(--border))',
-                                        borderRadius: '12px'
+                                        borderRadius: '12px',
+                                        fontSize: '13px',
+                                        boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
+                                        color: 'hsl(var(--foreground))'
                                     }}
+                                    itemStyle={{ color: 'hsl(var(--foreground))' }}
+                                    labelStyle={{ color: 'hsl(var(--muted-foreground))', fontWeight: 600 }}
                                 />
                             </PieChart>
                         </ResponsiveContainer>
@@ -735,8 +733,13 @@ export default function StatsPage() {
                                     contentStyle={{
                                         backgroundColor: 'hsl(var(--card))',
                                         border: '1px solid hsl(var(--border))',
-                                        borderRadius: '12px'
+                                        borderRadius: '12px',
+                                        fontSize: '13px',
+                                        boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
+                                        color: 'hsl(var(--foreground))'
                                     }}
+                                    itemStyle={{ color: 'hsl(var(--foreground))' }}
+                                    labelStyle={{ color: 'hsl(var(--muted-foreground))', fontWeight: 600 }}
                                 />
                                 <Legend />
                                 <Bar dataKey="speso" name="Spese Extra" fill="#3b82f6" radius={[0, 4, 4, 0]} />

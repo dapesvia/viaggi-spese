@@ -8,6 +8,7 @@ import { useTrip } from "@/lib/trip-context";
 import { MobileDatePicker } from "./mobile-date-picker";
 import { MobileMoneyInput } from "./mobile-money-input";
 import { logActivity } from "@/lib/activity-log";
+import { useToast } from "@/components/toast";
 
 const CATEGORIES = [
   { id: "food", label: "Cibo", emoji: "🍽️" },
@@ -44,6 +45,7 @@ interface AddExpenseDrawerProps {
   onOpenChange: (open: boolean) => void;
 }export function AddExpenseDrawer({ open, onOpenChange }: AddExpenseDrawerProps) {
   const { currentTrip } = useTrip();
+  const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Calculate initial date based on trip
@@ -151,9 +153,10 @@ interface AddExpenseDrawerProps {
 
       onOpenChange(false);
       resetForm();
+      toast('Spesa salvata!', 'success');
     } catch (error) {
       console.error('Errore salvataggio spesa:', error);
-      alert('Errore nel salvare la spesa. Riprova.');
+      toast('Errore nel salvare la spesa. Riprova.', 'error');
     } finally {
       setLoading(false);
     }

@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from "react";
+import { createContext, useContext, useEffect, useState, useCallback, ReactNode } from "react";
 import { supabase, type Trip } from "./supabase";
 
 interface TripContextType {
@@ -32,13 +32,17 @@ export function TripProvider({ children }: { children: ReactNode }) {
 
             if (error) throw error;
 
-            setTrips(data || []);
+            const tripsData = data || [];
+            setTrips(tripsData);
 
-            // Do NOT auto-select first trip anymore based on user request.
-            // Only restore if explicitly saved in localStorage? 
-            // User asked: "non fare subito selezionare in automatico". 
-            // Safest: don't select anything.
-            setCurrentTrip(null);
+            // Restore previously selected trip from localStorage
+            const savedTripId = localStorage.getItem('currentTripId');
+            if (savedTripId && !currentTrip) {
+                const savedTrip = tripsData.find(t => t.id === savedTripId);
+                if (savedTrip) {
+                    setCurrentTrip(savedTrip);
+                }
+            }
         } catch (error) {
             console.error('Errore caricamento viaggi:', error);
         } finally {
@@ -46,20 +50,20 @@ export function TripProvider({ children }: { children: ReactNode }) {
         }
     };
 
-    const selectTrip = (tripId: string) => {
+    const selectTrip = useCallback((tripId: string) => {
         const trip = trips.find(t => t.id === tripId);
         if (trip) {
             setCurrentTrip(trip);
             localStorage.setItem('currentTripId', tripId);
         }
-    };
+    }, [trips]);
 
     const createTrip = async (tripData: Omit<Trip, 'id' | 'created_at' | 'updated_at' | 'created_by'>): Promise<Trip> => {
         const { data, error } = await supabase
             .from('trips')
             .insert({
                 ...tripData,
-                created_by: null // No auth, no user
+                created_by: null
             })
             .select()
             .single();
@@ -67,10 +71,10 @@ export function TripProvider({ children }: { children: ReactNode }) {
         if (error) throw error;
 
         await loadTrips();
-        // Do NOT auto-select the new trip? User wants manual selection.
-        // But for creation it might be nice. Let's stick to manual to be consistent.
-        // setCurrentTrip(data); 
-        // localStorage.setItem('currentTripId', data.id);
+
+        // Auto-select newly created trip for convenience
+        setCurrentTrip(data);
+        localStorage.setItem('currentTripId', data.id);
 
         return data;
     };

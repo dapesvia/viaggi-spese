@@ -1,11 +1,12 @@
 import { useEffect, useState, useMemo, useRef } from "react";
 import { Plus, Loader2, Trash2, MapPin, Clock, Tag, ChevronLeft, ChevronRight, Building2, Navigation } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { cn } from "@/lib/utils";
 import { supabase, type ItineraryItem } from "@/lib/supabase";
+import { useToast } from "@/components/toast";
 import { useTrip } from "@/lib/trip-context";
 import { AddItineraryDrawer } from "@/components/add-itinerary-drawer";
 import { TripSelector } from "@/components/trip-selector";
-import { cn } from "@/lib/utils";
 
 const TYPE_INFO: Record<string, { emoji: string; label: string; color: string }> = {
   flight: { emoji: "✈️", label: "Volo", color: "from-blue-500/20 to-blue-600/10 border-blue-500/30" },
@@ -27,6 +28,7 @@ const ACCOMMODATION_LABELS: Record<string, string> = {
 
 export default function ItineraryPage() {
   const { currentTrip } = useTrip();
+  const { toast } = useToast();
   const [items, setItems] = useState<ItineraryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddDrawer, setShowAddDrawer] = useState(false);
@@ -95,8 +97,6 @@ export default function ItineraryPage() {
   };
 
   const deleteItem = async (id: string) => {
-    if (!confirm('Eliminare questo elemento?')) return;
-
     try {
       const { error } = await supabase
         .from('itinerary_items')
@@ -104,9 +104,11 @@ export default function ItineraryPage() {
         .eq('id', id);
 
       if (error) throw error;
+      toast("Elemento eliminato", "success");
       loadItems();
     } catch (error) {
       console.error('Errore eliminazione:', error);
+      toast("Errore nell'eliminazione", "error");
     }
   };
 
@@ -160,10 +162,10 @@ export default function ItineraryPage() {
       <div className="container max-w-2xl mx-auto px-4 py-6">
         <header className="mb-6">
           <div className="flex items-center justify-between mb-2">
-            <h1 className="text-3xl font-bold">Itinerario</h1>
+            <h1 className="text-3xl font-bold tracking-tight">Itinerario</h1>
             <TripSelector />
           </div>
-          <p className="text-muted-foreground">Il vostro programma di viaggio</p>
+          <p className="text-muted-foreground text-xs">Il vostro programma di viaggio ✈️</p>
         </header>
         <div className="text-center py-16">
           <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-muted flex items-center justify-center">
@@ -183,7 +185,7 @@ export default function ItineraryPage() {
       {/* Header */}
       <header className="mb-4">
         <div className="flex items-center justify-between mb-2">
-          <h1 className="text-3xl font-bold">Itinerario</h1>
+          <h1 className="text-3xl font-bold tracking-tight">Itinerario</h1>
           <TripSelector />
         </div>
       </header>

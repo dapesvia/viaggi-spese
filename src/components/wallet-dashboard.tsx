@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useMotionValue, useTransform, PanInfo } from "framer-motion";
 import { TrendingUp, TrendingDown, Trash2, Loader2, Edit2, Handshake, BarChart3, History, Receipt } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase, type Expense } from "@/lib/supabase";
 import { useTrip } from "@/lib/trip-context";
-
+import { useToast } from "@/components/toast";
+import { calculateSplit } from "@/lib/split-utils";
 import { EditExpenseDrawer } from "./edit-expense-drawer";
 import { SettleDebtDrawer } from "./settle-debt-drawer";
 import { ConfirmDialog } from "./confirm-dialog";
@@ -20,48 +21,106 @@ const CATEGORY_ICONS: Record<string, string> = {
   other: "💰",
 };
 
-// Calculate split amounts based on split type
-// Calculate split amounts based on split type
-function calculateSplit(amount: number, splitType: string, manualAlex: number = 0, manualTina: number = 0): { alex: number; tina: number } {
-  switch (splitType) {
-    case 'me':
-      return { alex: amount, tina: 0 };
-    case 'partner':
-      return { alex: 0, tina: amount };
-    case '70-30':
-      return { alex: amount * 0.7, tina: amount * 0.3 };
-    case '60-40':
-      return { alex: amount * 0.6, tina: amount * 0.4 };
-    case 'custom':
-      return { alex: manualAlex, tina: manualTina };
-    case 'equal':
-    default:
-      return { alex: amount / 2, tina: amount / 2 };
-  }
+/** Swipeable expense row for mobile */
+function SwipeableExpenseRow({
+  expense,
+  onEdit,
+  onDelete,
+  onViewReceipt,
+  getSplitLabel,
+}: {
+  expense: Expense;
+  onEdit: () => void;
+  onDelete: () => void;
+  onViewReceipt: (url: string) => void;
+  getSplitLabel: (t: string) => string;
+}) {
+  const x = useMotionValue(0);
+  const bg = useTransform(x, [-120, -60, 0], [
+    "rgba(239,68,68,0.3)",
+    "rgba(239,68,68,0.15)",
+    "rgba(239,68,68,0)",
+  ]);
+  const deleteOpacity = useTransform(x, [-100, -50, 0], [1, 0.5, 0]);
+  const deleteScale = useTransform(x, [-100, -50, 0], [1, 0.8, 0.5]);
+
+  const handleDragEnd = (_: unknown, info: PanInfo) => {
+    if (info.offset.x < -100) {
+      onDelete();
+    }
+  };
+
+  return (
+    <div className="relative overflow-hidden rounded-xl">
+      {/* Delete backdrop */}
+      <motion.div
+        style={{ backgroundColor: bg }}
+        className="absolute inset-0 flex items-center justify-end pr-6 rounded-xl"
+      >
+        <motion.div style={{ opacity: deleteOpacity, scale: deleteScale }}>
+          <Trash2 className="w-5 h-5 text-red-400" />
+        </motion.div>
+      </motion.div>
+
+      {/* Foreground row */}
+      <motion.div
+        style={{ x }}
+        drag="x"
+        dragConstraints={{ left: -120, right: 0 }}
+        dragElastic={0.1}
+        onDragEnd={handleDragEnd}
+        className="flex items-center gap-3 p-4 glass border border-border/50 group relative bg-background rounded-xl"
+      >
+        <div className="text-2xl">{CATEGORY_ICONS[expense.category]}</div>
+        <div className="flex-1 min-w-0">
+          <p className="font-medium truncate">{expense.description || "Spesa"}</p>
+          <p className="text-xs text-muted-foreground">
+            {getSplitLabel(expense.split_type)} •{" "}
+            {new Date(expense.expense_date).toLocaleDateString("it-IT")}
+            {expense.original_currency !== 'EUR' && ` • ${expense.original_currency}`}
+          </p>
+        </div>
+        <div className="flex items-center gap-1">
+          <div className="text-right">
+            <p className="font-bold">€{expense.amount_in_eur.toFixed(2)}</p>
+            {expense.original_currency !== 'EUR' && (
+              <p className="text-xs text-muted-foreground">
+                {expense.amount.toFixed(2)} {expense.original_currency}
+              </p>
+            )}
+          </div>
+          <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+            {expense.receipt_url && (
+              <button
+                onClick={() => onViewReceipt(expense.receipt_url!)}
+                className="p-2 rounded-lg hover:bg-muted transition-colors"
+              >
+                <Receipt className="w-4 h-4 text-muted-foreground" />
+              </button>
+            )}
+            <button
+              onClick={onEdit}
+              className="p-2 rounded-lg hover:bg-primary/10 transition-colors"
+            >
+              <Edit2 className="w-4 h-4 text-primary" />
+            </button>
+            <button
+              onClick={onDelete}
+              className="p-2 rounded-lg hover:bg-destructive/10 transition-colors"
+            >
+              <Trash2 className="w-4 h-4 text-destructive" />
+            </button>
+          </div>
+        </div>
+      </motion.div>
+    </div>
+  );
 }
-
-// ...
-
-// In WalletDashboard component:
-
-// Calculate balance
-// Logic: 
-// Credit = Paid - Consumed
-// If Alex paid 100 and consumed 50, credit is +50.
-// If Tina paid 0 and consumed 50, credit is -50.
-// Net Balance defined as "How much Tina owes Alex" = AlexCredit - TinaCredit? 
-// Wait.
-// Simplest: 
-// Balance > 0 implies Tina owes Alex.
-// Balance = (AlexPaid - AlexConsumed) - (TinaPaid - TinaConsumed)? No.
-// Balance = (AlexPaid - AlexConsumed).
-// Check: Alex pays 100 (50/50). Paid=100. Consumed=50. Balance = +50. Tina owes Alex 50. Correct.
-// Check: Tina pays 100 (50/50). Paid=0. Consumed=50. Balance = -50. Alex owes Tina 50. Correct.
-
 
 
 export function WalletDashboard() {
   const { currentTrip } = useTrip();
+  const { toast } = useToast();
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -133,10 +192,12 @@ export function WalletDashboard() {
         );
       }
 
+      toast(`"${deleteExpense.description || 'Spesa'}" eliminata`, "success");
       setDeleteExpense(null);
       loadExpenses();
     } catch (error) {
       console.error('Errore eliminazione:', error);
+      toast("Errore nell'eliminazione", "error");
     } finally {
       setDeleting(false);
     }
@@ -310,7 +371,6 @@ export function WalletDashboard() {
       </motion.div>
 
       {/* Balance Card */}
-      {/* Balance Card - High Visibility */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -414,12 +474,12 @@ export function WalletDashboard() {
         )}
       </AnimatePresence>
 
-      {/* Stats Section */}
-
-
       {/* Recent Transactions */}
       <div>
-        <h3 className="text-lg font-semibold mb-4">Spese Recenti</h3>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-semibold">Spese Recenti</h3>
+          <p className="text-xs text-muted-foreground">← scorri per eliminare</p>
+        </div>
         {expenses.filter(e => !e.description?.startsWith('💸')).length === 0 ? (
           <div className="text-center py-12 text-muted-foreground">
             <p>Nessuna spesa ancora</p>
@@ -435,49 +495,14 @@ export function WalletDashboard() {
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: 0.1 + index * 0.03 }}
-                  className="flex items-center gap-3 p-4 rounded-xl glass border border-border/50 group"
                 >
-                  <div className="text-2xl">{CATEGORY_ICONS[expense.category]}</div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium truncate">{expense.description || "Spesa"}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {getSplitLabel(expense.split_type)} •{" "}
-                      {new Date(expense.expense_date).toLocaleDateString("it-IT")}
-                      {expense.original_currency !== 'EUR' && ` • ${expense.original_currency}`}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <div className="text-right">
-                      <p className="font-bold">€{expense.amount_in_eur.toFixed(2)}</p>
-                      {expense.original_currency !== 'EUR' && (
-                        <p className="text-xs text-muted-foreground">
-                          {expense.amount.toFixed(2)} {expense.original_currency}
-                        </p>
-                      )}
-                    </div>
-                    <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                      {expense.receipt_url && (
-                        <button
-                          onClick={() => setViewingReceipt(expense.receipt_url)}
-                          className="p-2 rounded-lg hover:bg-muted transition-colors"
-                        >
-                          <Receipt className="w-4 h-4 text-muted-foreground" />
-                        </button>
-                      )}
-                      <button
-                        onClick={() => setEditingExpense(expense)}
-                        className="p-2 rounded-lg hover:bg-primary/10 transition-colors"
-                      >
-                        <Edit2 className="w-4 h-4 text-primary" />
-                      </button>
-                      <button
-                        onClick={() => setDeleteExpense(expense)}
-                        className="p-2 rounded-lg hover:bg-destructive/10 transition-colors"
-                      >
-                        <Trash2 className="w-4 h-4 text-destructive" />
-                      </button>
-                    </div>
-                  </div>
+                  <SwipeableExpenseRow
+                    expense={expense}
+                    onEdit={() => setEditingExpense(expense)}
+                    onDelete={() => setDeleteExpense(expense)}
+                    onViewReceipt={(url) => setViewingReceipt(url)}
+                    getSplitLabel={getSplitLabel}
+                  />
                 </motion.div>
               ))}
           </div>

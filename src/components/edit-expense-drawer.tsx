@@ -4,6 +4,7 @@ import { X, Euro, Calendar, Save } from "lucide-react";
 import { Drawer } from "vaul";
 import { cn } from "@/lib/utils";
 import { supabase, type Expense } from "@/lib/supabase";
+import { useToast } from "@/components/toast";
 
 const CATEGORIES = [
     { id: "food", label: "Cibo", emoji: "🍽️" },
@@ -39,6 +40,7 @@ export function EditExpenseDrawer({ expense, open, onOpenChange, onSaved }: Edit
     const [description, setDescription] = useState("");
     const [expenseDate, setExpenseDate] = useState("");
     const [loading, setLoading] = useState(false);
+    const { toast } = useToast();
 
     useEffect(() => {
         if (expense) {
@@ -82,9 +84,10 @@ export function EditExpenseDrawer({ expense, open, onOpenChange, onSaved }: Edit
 
             onOpenChange(false);
             onSaved();
+            toast('Modifiche salvate!', 'success');
         } catch (error) {
             console.error('Errore aggiornamento:', error);
-            alert('Errore nel salvare le modifiche.');
+            toast('Errore nel salvare le modifiche.', 'error');
         } finally {
             setLoading(false);
         }

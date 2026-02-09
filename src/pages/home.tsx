@@ -1,23 +1,34 @@
-import { useState, useMemo } from "react";
-import { Plus, Loader2, Plane, Trash2, Edit2, Search, X, CalendarDays } from "lucide-react";
+import { useState, useMemo, useCallback } from "react";
+import { Plus, Plane, Trash2, Edit2, Search, X, CalendarDays, RefreshCw } from "lucide-react";
 import { TripCard } from "@/components/trip-card";
 import { CreateTripDrawer } from "@/components/create-trip-drawer";
 import { ConfirmDialog } from "@/components/confirm-dialog";
+import { TripCardSkeleton } from "@/components/skeleton";
 import { useTrip } from "@/lib/trip-context";
+import { useToast } from "@/components/toast";
 import { supabase, type Trip } from "@/lib/supabase";
 import { motion, AnimatePresence } from "framer-motion";
 
 export default function HomePage() {
   const { trips, currentTrip, loading, selectTrip, refreshTrips } = useTrip();
+  const { toast } = useToast();
   const [showCreateDrawer, setShowCreateDrawer] = useState(false);
   const [tripToEdit, setTripToEdit] = useState<Trip | null>(null);
   const [deleteTrip, setDeleteTrip] = useState<{ id: string; name: string } | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
   // Search & filter state
   const [searchQuery, setSearchQuery] = useState("");
   const [showFilters, setShowFilters] = useState(false);
   const [filterMonth, setFilterMonth] = useState("");
+
+  const handleRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await refreshTrips();
+    setRefreshing(false);
+    toast("Lista aggiornata", "info");
+  }, [refreshTrips, toast]);
 
   const handleDeleteTrip = async () => {
     if (!deleteTrip) return;
@@ -31,11 +42,12 @@ export default function HomePage() {
 
       if (error) throw error;
 
+      toast(`"${deleteTrip.name}" eliminato`, "success");
       setDeleteTrip(null);
       await refreshTrips();
     } catch (error) {
       console.error("Errore eliminazione viaggio:", error);
-      alert("Errore nell'eliminare il viaggio");
+      toast("Errore nell'eliminare il viaggio", "error");
     } finally {
       setDeleting(false);
     }
@@ -45,16 +57,14 @@ export default function HomePage() {
   const filteredTrips = useMemo(() => {
     let result = trips;
 
-    // Filter by name
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase().trim();
       result = result.filter(t => t.name.toLowerCase().includes(q));
     }
 
-    // Filter by month (YYYY-MM format)
     if (filterMonth) {
       result = result.filter(t => {
-        const start = t.start_date.slice(0, 7); // YYYY-MM
+        const start = t.start_date.slice(0, 7);
         const end = t.end_date.slice(0, 7);
         return start <= filterMonth && end >= filterMonth;
       });
@@ -72,11 +82,18 @@ export default function HomePage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="flex flex-col items-center gap-3">
-          <Loader2 className="w-8 h-8 animate-spin text-primary" />
-          <p className="text-sm text-muted-foreground">Caricamento viaggi...</p>
+      <div className="container max-w-2xl mx-auto px-4 py-6">
+        <div className="mb-6 space-y-3">
+          <div className="flex items-center gap-3">
+            <div className="w-11 h-11 rounded-2xl bg-muted animate-pulse" />
+            <div className="space-y-2">
+              <div className="h-5 w-32 bg-muted rounded animate-pulse" />
+              <div className="h-3 w-48 bg-muted rounded animate-pulse" />
+            </div>
+          </div>
+          <div className="h-7 w-36 bg-muted rounded animate-pulse" />
         </div>
+        <TripCardSkeleton />
       </div>
     );
   }
@@ -93,10 +110,20 @@ export default function HomePage() {
           <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-primary via-primary/80 to-violet-600 flex items-center justify-center shadow-lg shadow-primary/25">
             <Plane className="w-5 h-5 text-white" />
           </div>
-          <div>
+          <div className="flex-1">
             <h1 className="text-xl font-bold tracking-tight">Viaggi & Spese</h1>
             <p className="text-xs text-muted-foreground">Gestisci i vostri viaggi insieme ✨</p>
           </div>
+
+          {/* Pull-to-refresh button */}
+          <motion.button
+            whileTap={{ scale: 0.9, rotate: 180 }}
+            onClick={handleRefresh}
+            disabled={refreshing}
+            className="p-2.5 rounded-xl bg-muted/50 text-muted-foreground hover:bg-muted transition-colors"
+          >
+            <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+          </motion.button>
         </motion.div>
 
         <div className="flex items-center justify-between mb-3">
@@ -126,7 +153,6 @@ export default function HomePage() {
               className="overflow-hidden"
             >
               <div className="space-y-3 pb-2">
-                {/* Search input */}
                 <div className="relative">
                   <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                   <input
@@ -146,7 +172,6 @@ export default function HomePage() {
                   )}
                 </div>
 
-                {/* Month filter */}
                 <div className="relative">
                   <CalendarDays className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                   <input
@@ -166,7 +191,6 @@ export default function HomePage() {
                   )}
                 </div>
 
-                {/* Active filter indicator */}
                 {hasActiveFilters && (
                   <motion.div
                     initial={{ opacity: 0 }}
@@ -300,7 +324,6 @@ export default function HomePage() {
         </motion.button>
       )}
 
-      {/* Create/Edit Trip Drawer */}
       <CreateTripDrawer
         open={showCreateDrawer}
         onOpenChange={(open) => {
@@ -310,7 +333,6 @@ export default function HomePage() {
         tripToEdit={tripToEdit}
       />
 
-      {/* Delete Confirmation Dialog */}
       <ConfirmDialog
         open={!!deleteTrip}
         onClose={() => setDeleteTrip(null)}

@@ -5,6 +5,7 @@ import { Drawer } from "vaul";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/lib/supabase";
 import { useTrip } from "@/lib/trip-context";
+import { useToast } from "@/components/toast";
 
 const ITEM_TYPES = [
     { id: "flight", label: "Volo", emoji: "✈️" },
@@ -23,6 +24,7 @@ interface AddItineraryDrawerProps {
 
 export function AddItineraryDrawer({ open, onOpenChange, onSaved, defaultDate }: AddItineraryDrawerProps) {
     const { currentTrip } = useTrip();
+    const { toast } = useToast();
 
     const [type, setType] = useState("activity");
     const [title, setTitle] = useState("");
@@ -68,7 +70,7 @@ export function AddItineraryDrawer({ open, onOpenChange, onSaved, defaultDate }:
             setBookingRef("");
         } catch (error) {
             console.error('Errore salvataggio:', error);
-            alert('Errore nel salvare. Riprova.');
+            toast('Errore nel salvare. Riprova.', 'error');
         } finally {
             setLoading(false);
         }

@@ -4,6 +4,7 @@ import { X, Check, ArrowRight } from "lucide-react";
 import { Drawer } from "vaul";
 import { supabase } from "@/lib/supabase";
 import { useTrip } from "@/lib/trip-context";
+import { useToast } from "@/components/toast";
 
 interface SettleDebtDrawerProps {
     open: boolean;
@@ -14,6 +15,7 @@ interface SettleDebtDrawerProps {
 
 export function SettleDebtDrawer({ open, onOpenChange, balance, onSettled }: SettleDebtDrawerProps) {
     const { currentTrip } = useTrip();
+    const { toast } = useToast();
     const [loading, setLoading] = useState(false);
 
     const creditor = balance > 0 ? "Alex" : "Tina";
@@ -44,7 +46,7 @@ export function SettleDebtDrawer({ open, onOpenChange, balance, onSettled }: Set
             onSettled();
         } catch (error) {
             console.error('Errore saldo:', error);
-            alert('Errore nel registrare il saldo.');
+            toast('Errore nel registrare il saldo.', 'error');
         } finally {
             setLoading(false);
         }
