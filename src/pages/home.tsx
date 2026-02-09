@@ -1,15 +1,16 @@
 import { useState } from "react";
-import { Plus, Loader2, Plane, Trash2 } from "lucide-react";
+import { Plus, Loader2, Plane, Trash2, Edit2 } from "lucide-react";
 import { TripCard } from "@/components/trip-card";
 import { CreateTripDrawer } from "@/components/create-trip-drawer";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { useTrip } from "@/lib/trip-context";
-import { supabase } from "@/lib/supabase";
+import { supabase, type Trip } from "@/lib/supabase";
 import { motion } from "framer-motion";
 
 export default function HomePage() {
   const { trips, currentTrip, loading, selectTrip, refreshTrips } = useTrip();
   const [showCreateDrawer, setShowCreateDrawer] = useState(false);
+  const [tripToEdit, setTripToEdit] = useState<Trip | null>(null);
   const [deleteTrip, setDeleteTrip] = useState<{ id: string; name: string } | null>(null);
   const [deleting, setDeleting] = useState(false);
 
@@ -104,17 +105,31 @@ export default function HomePage() {
                 />
               </div>
 
-              {/* Delete button */}
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setDeleteTrip({ id: trip.id, name: trip.name });
-                }}
-                className="absolute top-4 left-4 p-2.5 rounded-full bg-black/50 text-white opacity-0 group-hover:opacity-100 hover:bg-destructive transition-all"
-                title="Elimina viaggio"
-              >
-                <Trash2 className="w-4 h-4" />
-              </button>
+              {/* Action buttons */}
+              <div className="absolute top-4 left-4 flex gap-2">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setTripToEdit(trip);
+                    setShowCreateDrawer(true);
+                  }}
+                  className="p-2.5 rounded-full bg-black/50 text-white backdrop-blur-sm opacity-0 group-hover:opacity-100 hover:bg-black/70 transition-all shadow-sm"
+                  title="Modifica viaggio"
+                >
+                  <Edit2 className="w-4 h-4" />
+                </button>
+
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setDeleteTrip({ id: trip.id, name: trip.name });
+                  }}
+                  className="p-2.5 rounded-full bg-black/50 text-white backdrop-blur-sm opacity-0 group-hover:opacity-100 hover:bg-destructive transition-all shadow-sm"
+                  title="Elimina viaggio"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
             </motion.div>
           ))}
         </div>
@@ -127,14 +142,21 @@ export default function HomePage() {
           animate={{ scale: 1 }}
           whileTap={{ scale: 0.9 }}
           onClick={() => setShowCreateDrawer(true)}
-          className="fixed bottom-24 right-6 w-14 h-14 rounded-full bg-gradient-to-r from-primary to-primary/80 text-white shadow-lg shadow-primary/30 flex items-center justify-center"
+          className="fixed bottom-24 right-6 w-14 h-14 rounded-full bg-gradient-to-r from-primary to-primary/80 text-white shadow-lg shadow-primary/30 flex items-center justify-center z-40"
         >
           <Plus className="w-6 h-6" />
         </motion.button>
       )}
 
-      {/* Create Trip Drawer */}
-      <CreateTripDrawer open={showCreateDrawer} onOpenChange={setShowCreateDrawer} />
+      {/* Create/Edit Trip Drawer */}
+      <CreateTripDrawer
+        open={showCreateDrawer}
+        onOpenChange={(open) => {
+          setShowCreateDrawer(open);
+          if (!open) setTripToEdit(null);
+        }}
+        tripToEdit={tripToEdit}
+      />
 
       {/* Delete Confirmation Dialog */}
       <ConfirmDialog
