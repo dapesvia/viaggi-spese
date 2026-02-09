@@ -219,7 +219,11 @@ export function WalletDashboard() {
     );
   }
 
-  const totalSpent = expenses.reduce((sum, exp) => sum + exp.amount_in_eur, 0);
+  // Filter out settlements for Stats/Totals (but keep for Balance)
+  const isSettlement = (e: Expense) => e.description?.startsWith('💸');
+  const realExpenses = expenses.filter(e => !isSettlement(e));
+
+  const totalSpent = realExpenses.reduce((sum, exp) => sum + exp.amount_in_eur, 0);
   const tripCost = currentTrip.budget || 0;
   const tripPayer = currentTrip.cost_payer || 'split';
   const totalTripCost = tripCost + totalSpent;
@@ -265,9 +269,25 @@ export function WalletDashboard() {
 
   const balance = alexPaid - alexConsumed;
 
+  // For display "Tu hai speso" / "Tina ha speso", we want real consumption excluding settlements
+  // We re-calculate based on realExpenses
+  let alexRealConsumed = 0;
+  let tinaRealConsumed = 0;
+
+  // Add initial trip split to real consumed
+  alexRealConsumed += tripCostPerPerson;
+  tinaRealConsumed += tripCostPerPerson;
+
+  realExpenses.forEach(e => {
+    const amount = e.amount_in_eur;
+    const split = calculateSplit(amount, e.split_type, e.split_manual_alex, e.split_manual_tina);
+    alexRealConsumed += split.alex;
+    tinaRealConsumed += split.tina;
+  });
+
   // Variables for display
-  const alexTotal = alexConsumed;
-  const tinaTotal = tinaConsumed;
+  const alexTotal = alexRealConsumed;
+  const tinaTotal = tinaRealConsumed;
 
   // Get settlement history
   const settlements = expenses.filter(e => e.description?.startsWith('💸'));

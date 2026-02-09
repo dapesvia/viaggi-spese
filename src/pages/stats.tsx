@@ -403,6 +403,11 @@ export default function StatsPage() {
         setExpenses(data || []);
     };
 
+    // Helper
+    const isSettlement = (e: Expense) => e.description?.startsWith('💸');
+    const realExpenses = useMemo(() => expenses.filter(e => !isSettlement(e)), [expenses]);
+    const realAllExpenses = useMemo(() => allExpenses.filter(e => !isSettlement(e)), [allExpenses]);
+
     // Build trip date sets for the calendar
     const tripDates = useMemo(() => {
         const dates = new Set<string>();
@@ -424,12 +429,12 @@ export default function StatsPage() {
     // Build expense amount by date
     const expenseDateAmounts = useMemo(() => {
         const map = new Map<string, number>();
-        allExpenses.forEach(e => {
+        realAllExpenses.forEach(e => {
             const key = e.expense_date; // YYYY-MM-DD
             map.set(key, (map.get(key) || 0) + e.amount);
         });
         return map;
-    }, [allExpenses]);
+    }, [realAllExpenses]);
 
     // Build trip cost by start date (allocate trip budget to start_date)
     const tripDateAmounts = useMemo(() => {
@@ -443,9 +448,9 @@ export default function StatsPage() {
         return map;
     }, [trips]);
 
-    // Stats per categoria (viaggio corrente)
+    // Stats per categoria (viaggio corrente) - EXCLUDE SETTLEMENTS
     const categoryData = Object.entries(
-        expenses.reduce((acc, exp) => {
+        realExpenses.reduce((acc, exp) => {
             acc[exp.category] = (acc[exp.category] || 0) + exp.amount;
             return acc;
         }, {} as Record<string, number>)
@@ -455,9 +460,9 @@ export default function StatsPage() {
         color: CATEGORY_COLORS[name] || "#6b7280"
     }));
 
-    // Stats per viaggio (tutti i viaggi)
+    // Stats per viaggio (tutti i viaggi) - EXCLUDE SETTLEMENTS
     const tripData = trips.map(trip => {
-        const tripExpenses = allExpenses.filter(e => e.trip_id === trip.id);
+        const tripExpenses = realAllExpenses.filter(e => e.trip_id === trip.id);
         const total = tripExpenses.reduce((sum, e) => sum + e.amount, 0);
         return {
             name: trip.name.length > 12 ? trip.name.slice(0, 12) + "..." : trip.name,
@@ -503,12 +508,30 @@ export default function StatsPage() {
 
     const globalBalance = globalAlexPaid - globalAlexConsumed;
 
-    // Totali
-    const totalSpentExpenses = expenses.reduce((sum, e) => sum + e.amount, 0);
+    // Calcolo "Tu hai speso" REALE (senza rimborsi)
+    let displayAlexConsumed = 0;
+    let displayTinaConsumed = 0;
+
+    trips.forEach(trip => {
+        const tripCost = trip.budget || 0;
+        const tripCostPerPerson = tripCost / 2;
+        displayAlexConsumed += tripCostPerPerson;
+        displayTinaConsumed += tripCostPerPerson;
+    });
+
+    realAllExpenses.forEach(e => {
+        const amount = e.amount_in_eur;
+        const split = calculateSplit(amount, e.split_type, e.split_manual_alex, e.split_manual_tina);
+        displayAlexConsumed += split.alex;
+        displayTinaConsumed += split.tina;
+    });
+
+    // Totali - EXCLUDE SETTLEMENTS
+    const totalSpentExpenses = realExpenses.reduce((sum, e) => sum + e.amount, 0);
     const totalTripCost = currentTrip?.budget || 0;
     const totalSpent = totalSpentExpenses + totalTripCost;
 
-    const totalAllTimeExpenses = allExpenses.reduce((sum, e) => sum + e.amount, 0);
+    const totalAllTimeExpenses = realAllExpenses.reduce((sum, e) => sum + e.amount, 0);
     const totalAllTimeTrips = trips.reduce((sum, t) => sum + (t.budget || 0), 0);
     const totalAllTime = totalAllTimeExpenses + totalAllTimeTrips;
 
@@ -584,11 +607,11 @@ export default function StatsPage() {
                 <div className="grid grid-cols-2 gap-4 mt-6 relative z-10">
                     <div className="p-3 rounded-xl bg-blue-500/10 border border-blue-500/20 text-center">
                         <p className="text-xs text-muted-foreground mb-1">Tu hai speso</p>
-                        <p className="text-lg font-bold text-blue-500">€{globalAlexConsumed.toFixed(0)}</p>
+                        <p className="text-lg font-bold text-blue-500">€{displayAlexConsumed.toFixed(0)}</p>
                     </div>
                     <div className="p-3 rounded-xl bg-pink-500/10 border border-pink-500/20 text-center">
                         <p className="text-xs text-muted-foreground mb-1">Lei ha speso</p>
-                        <p className="text-lg font-bold text-pink-500">€{globalTinaConsumed.toFixed(0)}</p>
+                        <p className="text-lg font-bold text-pink-500">€{displayTinaConsumed.toFixed(0)}</p>
                     </div>
                 </div>
             </motion.div>
