@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { motion } from "framer-motion";
 import { X, Camera, Image as ImageIcon } from "lucide-react";
 import { Drawer } from "vaul";
@@ -48,12 +48,45 @@ export function AddExpenseDrawer({ open, onOpenChange }: AddExpenseDrawerProps) 
   const { currentTrip } = useTrip();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Calculate initial date based on trip
+  const getInitialDate = () => {
+    if (!currentTrip) return new Date().toISOString().split('T')[0];
+    const now = new Date();
+    const start = new Date(currentTrip.start_date);
+    const end = new Date(currentTrip.end_date);
+
+    // If today is within trip range, use today. Otherwise use start date.
+    if (now >= start && now <= end) {
+      // Usa orario locale per evitare problemi timezone
+      const year = now.getFullYear();
+      const month = String(now.getMonth() + 1).padStart(2, '0');
+      const day = String(now.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    }
+    return currentTrip.start_date;
+  };
+
+  const [date, setDate] = useState(getInitialDate());
+
+  // Update date when trip changes or drawer opens
+  useEffect(() => {
+    if (open && currentTrip) {
+      setDate(getInitialDate());
+    }
+  }, [open, currentTrip]);
+
   const [amount, setAmount] = useState("");
   const [currency, setCurrency] = useState("EUR");
   const [category, setCategory] = useState("food");
   const [splitType, setSplitType] = useState("equal");
   const [description, setDescription] = useState("");
-  const [expenseDate, setExpenseDate] = useState(new Date().toISOString().split('T')[0]);
+  const [expenseDate, setExpenseDate] = useState(getInitialDate()); // Fallback initial state
+
+  // Sync expenseDate with calculated date
+  useEffect(() => {
+    setExpenseDate(date);
+  }, [date]);
+
   const [receiptImage, setReceiptImage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -87,11 +120,11 @@ export function AddExpenseDrawer({ open, onOpenChange }: AddExpenseDrawerProps) 
         amount_in_eur: amountInEur,
         category,
         description: description || null,
-        paid_by_user_id: null,
+        paid_by_user_id: null, // No auth
         split_type: splitType,
         expense_date: expenseDate,
         trip_id: currentTrip.id,
-        receipt_url: receiptImage // In production, upload to storage first
+        receipt_url: receiptImage
       });
 
       if (error) throw error;
@@ -123,7 +156,20 @@ export function AddExpenseDrawer({ open, onOpenChange }: AddExpenseDrawerProps) 
     setCategory("food");
     setSplitType("equal");
     setDescription("");
-    setExpenseDate(new Date().toISOString().split('T')[0]);
+    // Reset date to smart default
+    if (currentTrip) {
+      const now = new Date();
+      const start = new Date(currentTrip.start_date);
+      const end = new Date(currentTrip.end_date);
+      if (now >= start && now <= end) {
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const day = String(now.getDate()).padStart(2, '0');
+        setDate(`${year}-${month}-${day}`);
+      } else {
+        setDate(currentTrip.start_date);
+      }
+    }
     setReceiptImage(null);
   };
 
@@ -225,14 +271,21 @@ export function AddExpenseDrawer({ open, onOpenChange }: AddExpenseDrawerProps) 
               </p>
             </div>
 
-            {/* Date Picker */}
+            {/* Date Picker - Limita a date viaggio */}
             <div className="mb-4">
+              <label className="text-sm font-medium text-muted-foreground mb-2 block">
+                Data Spesa
+              </label>
               <MobileDatePicker
                 value={expenseDate}
                 onChange={setExpenseDate}
-                label="📅 Data"
-                maxDate={new Date().toISOString().split('T')[0]}
+                label="📅 Seleziona data"
+                minDate={currentTrip.start_date}
+                maxDate={currentTrip.end_date}
               />
+              <p className="text-xs text-muted-foreground mt-1 ml-1">
+                Viaggio: {new Date(currentTrip.start_date).toLocaleDateString('it-IT', { day: 'numeric', month: 'short' })} - {new Date(currentTrip.end_date).toLocaleDateString('it-IT', { day: 'numeric', month: 'short' })}
+              </p>
             </div>
 
             {/* Description */}
