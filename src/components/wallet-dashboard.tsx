@@ -1,9 +1,13 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { TrendingUp, TrendingDown, Euro, Trash2, Loader2 } from "lucide-react";
+import { TrendingUp, TrendingDown, Euro, Trash2, Loader2, Edit2, Handshake, BarChart3 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { supabase, type Expense, type Profile } from "@/lib/supabase";
+import { supabase, type Expense } from "@/lib/supabase";
 import { useTrip } from "@/lib/trip-context";
+import { ExpenseStats } from "./expense-stats";
+import { EditExpenseDrawer } from "./edit-expense-drawer";
+import { SettleDebtDrawer } from "./settle-debt-drawer";
+import { ConfirmDialog } from "./confirm-dialog";
 
 const CATEGORY_ICONS: Record<string, string> = {
   food: "🍽️",
@@ -14,14 +18,15 @@ const CATEGORY_ICONS: Record<string, string> = {
   other: "💰",
 };
 
-interface ExpenseWithPayer extends Expense {
-  payer?: Profile;
-}
-
 export function WalletDashboard() {
   const { currentTrip } = useTrip();
-  const [expenses, setExpenses] = useState<ExpenseWithPayer[]>([]);
+  const [expenses, setExpenses] = useState<Expense[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showStats, setShowStats] = useState(false);
+  const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
+  const [showSettleDrawer, setShowSettleDrawer] = useState(false);
+  const [deleteExpense, setDeleteExpense] = useState<Expense | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     if (currentTrip) {
@@ -62,19 +67,23 @@ export function WalletDashboard() {
     }
   };
 
-  const deleteExpense = async (id: string) => {
-    if (!confirm('Eliminare questa spesa?')) return;
+  const handleDeleteExpense = async () => {
+    if (!deleteExpense) return;
 
+    setDeleting(true);
     try {
       const { error } = await supabase
         .from('expenses')
         .delete()
-        .eq('id', id);
+        .eq('id', deleteExpense.id);
 
       if (error) throw error;
+      setDeleteExpense(null);
       loadExpenses();
     } catch (error) {
       console.error('Errore eliminazione:', error);
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -118,8 +127,20 @@ export function WalletDashboard() {
   return (
     <div className="space-y-6">
       {/* Trip indicator */}
-      <div className="text-sm text-muted-foreground">
-        Viaggio: <span className="font-medium text-foreground">{currentTrip.name}</span>
+      <div className="flex items-center justify-between">
+        <div className="text-sm text-muted-foreground">
+          Viaggio: <span className="font-medium text-foreground">{currentTrip.name}</span>
+        </div>
+        <button
+          onClick={() => setShowStats(!showStats)}
+          className={cn(
+            "p-2 rounded-lg transition-colors",
+            showStats ? "bg-primary text-primary-foreground" : "hover:bg-muted"
+          )}
+          title="Statistiche"
+        >
+          <BarChart3 className="w-5 h-5" />
+        </button>
       </div>
 
       {/* Budget Overview */}
@@ -158,14 +179,26 @@ export function WalletDashboard() {
         </p>
       </motion.div>
 
-      {/* Balance Card */}
+      {/* Balance Card with Settle Button */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1 }}
         className="p-6 rounded-2xl glass border border-border/50"
       >
-        <h3 className="text-lg font-semibold mb-4">Bilancio</h3>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-semibold">Bilancio</h3>
+          {Math.abs(balance) >= 1 && (
+            <motion.button
+              whileTap={{ scale: 0.95 }}
+              onClick={() => setShowSettleDrawer(true)}
+              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-green-500/10 text-green-500 border border-green-500/20 hover:bg-green-500/20 transition-colors"
+            >
+              <Handshake className="w-4 h-4" />
+              <span className="text-sm font-medium">Salda</span>
+            </motion.button>
+          )}
+        </div>
         <div className="flex items-center justify-center gap-3">
           {balance > 5 ? (
             <>
@@ -189,6 +222,9 @@ export function WalletDashboard() {
         </div>
       </motion.div>
 
+      {/* Stats Section */}
+      {showStats && <ExpenseStats expenses={expenses} />}
+
       {/* Recent Transactions */}
       <div>
         <h3 className="text-lg font-semibold mb-4">Spese Recenti</h3>
@@ -208,28 +244,63 @@ export function WalletDashboard() {
                 className="flex items-center gap-4 p-4 rounded-xl glass border border-border/50 group"
               >
                 <div className="text-3xl">{CATEGORY_ICONS[expense.category]}</div>
-                <div className="flex-1">
-                  <p className="font-medium">{expense.description || "Spesa"}</p>
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium truncate">{expense.description || "Spesa"}</p>
                   <p className="text-sm text-muted-foreground">
-                    {expense.split_type === 'me' ? '👤 Solo io' :
-                      expense.split_type === 'partner' ? '👥 Solo partner' : '⚖️ Diviso'} •{" "}
+                    {expense.split_type === 'me' ? '👤 Alex' :
+                      expense.split_type === 'partner' ? '👥 Tina' : '⚖️ Diviso'} •{" "}
                     {new Date(expense.expense_date).toLocaleDateString("it-IT")}
                   </p>
                 </div>
-                <div className="text-right flex items-center gap-2">
-                  <p className="font-bold">€{expense.amount_in_eur.toFixed(2)}</p>
-                  <button
-                    onClick={() => deleteExpense(expense.id)}
-                    className="p-2 rounded-lg opacity-0 group-hover:opacity-100 hover:bg-destructive/10 transition-all"
-                  >
-                    <Trash2 className="w-4 h-4 text-destructive" />
-                  </button>
+                <div className="flex items-center gap-2">
+                  <p className="font-bold whitespace-nowrap">€{expense.amount_in_eur.toFixed(2)}</p>
+                  <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button
+                      onClick={() => setEditingExpense(expense)}
+                      className="p-2 rounded-lg hover:bg-primary/10 transition-colors"
+                    >
+                      <Edit2 className="w-4 h-4 text-primary" />
+                    </button>
+                    <button
+                      onClick={() => setDeleteExpense(expense)}
+                      className="p-2 rounded-lg hover:bg-destructive/10 transition-colors"
+                    >
+                      <Trash2 className="w-4 h-4 text-destructive" />
+                    </button>
+                  </div>
                 </div>
               </motion.div>
             ))}
           </div>
         )}
       </div>
+
+      {/* Edit Expense Drawer */}
+      <EditExpenseDrawer
+        expense={editingExpense}
+        open={!!editingExpense}
+        onOpenChange={(open) => !open && setEditingExpense(null)}
+        onSaved={loadExpenses}
+      />
+
+      {/* Settle Debt Drawer */}
+      <SettleDebtDrawer
+        open={showSettleDrawer}
+        onOpenChange={setShowSettleDrawer}
+        balance={balance}
+        onSettled={loadExpenses}
+      />
+
+      {/* Delete Confirmation */}
+      <ConfirmDialog
+        open={!!deleteExpense}
+        onClose={() => setDeleteExpense(null)}
+        onConfirm={handleDeleteExpense}
+        title="Elimina spesa"
+        message={`Eliminare "${deleteExpense?.description || 'questa spesa'}" di €${deleteExpense?.amount_in_eur.toFixed(2)}?`}
+        confirmText="Elimina"
+        loading={deleting}
+      />
     </div>
   );
 }
