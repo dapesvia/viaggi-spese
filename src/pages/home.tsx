@@ -73,7 +73,10 @@ export default function HomePage() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        <div className="flex flex-col items-center gap-3">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+          <p className="text-sm text-muted-foreground">Caricamento viaggi...</p>
+        </div>
       </div>
     );
   }
@@ -82,28 +85,33 @@ export default function HomePage() {
     <div className="container max-w-2xl mx-auto px-4 py-6">
       {/* Header */}
       <header className="mb-6">
-        <div className="flex items-center gap-3 mb-4">
-          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center">
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex items-center gap-3 mb-5"
+        >
+          <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-primary via-primary/80 to-violet-600 flex items-center justify-center shadow-lg shadow-primary/25">
             <Plane className="w-5 h-5 text-white" />
           </div>
           <div>
-            <h1 className="text-xl font-bold">Viaggi & Spese 👋</h1>
-            <p className="text-sm text-muted-foreground">Gestisci i vostri viaggi insieme</p>
+            <h1 className="text-xl font-bold tracking-tight">Viaggi & Spese</h1>
+            <p className="text-xs text-muted-foreground">Gestisci i vostri viaggi insieme ✨</p>
           </div>
-        </div>
+        </motion.div>
 
         <div className="flex items-center justify-between mb-3">
-          <h2 className="text-2xl font-bold">I Vostri Viaggi</h2>
+          <h2 className="text-2xl font-bold tracking-tight">I Vostri Viaggi</h2>
           {trips.length > 0 && (
-            <button
+            <motion.button
+              whileTap={{ scale: 0.9 }}
               onClick={() => setShowFilters(!showFilters)}
-              className={`p-2.5 rounded-xl transition-all ${showFilters || hasActiveFilters
-                ? "bg-primary/20 text-primary border border-primary/30"
-                : "bg-muted text-muted-foreground hover:bg-muted/80"
+              className={`p-2.5 rounded-xl transition-all duration-200 ${showFilters || hasActiveFilters
+                ? "bg-primary/15 text-primary border border-primary/25 shadow-sm shadow-primary/10"
+                : "bg-muted/50 text-muted-foreground hover:bg-muted"
                 }`}
             >
               <Search className="w-5 h-5" />
-            </button>
+            </motion.button>
           )}
         </div>
 
@@ -126,7 +134,7 @@ export default function HomePage() {
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     placeholder="Cerca per nome..."
-                    className="w-full pl-10 pr-10 py-3 rounded-xl bg-muted/50 border border-border focus:border-primary/50 focus:bg-background transition-all outline-none text-sm"
+                    className="w-full pl-10 pr-10 py-3 rounded-xl bg-muted/30 border border-border/50 focus:border-primary/40 focus:bg-background focus:ring-2 focus:ring-primary/10 transition-all outline-none text-sm"
                   />
                   {searchQuery && (
                     <button
@@ -145,7 +153,7 @@ export default function HomePage() {
                     type="month"
                     value={filterMonth}
                     onChange={(e) => setFilterMonth(e.target.value)}
-                    className="w-full pl-10 pr-4 py-3 rounded-xl bg-muted/50 border border-border focus:border-primary/50 focus:bg-background transition-all outline-none text-sm appearance-none"
+                    className="w-full pl-10 pr-4 py-3 rounded-xl bg-muted/30 border border-border/50 focus:border-primary/40 focus:bg-background focus:ring-2 focus:ring-primary/10 transition-all outline-none text-sm appearance-none"
                     style={{ colorScheme: "dark" }}
                   />
                   {filterMonth && (
@@ -187,30 +195,31 @@ export default function HomePage() {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="text-center py-16"
+          className="text-center py-20"
         >
-          <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-muted flex items-center justify-center">
-            <Plane className="w-10 h-10 text-muted-foreground" />
+          <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-primary/20 to-violet-500/10 flex items-center justify-center">
+            <Plane className="w-10 h-10 text-primary/60" />
           </div>
           <h3 className="text-xl font-semibold mb-2">Nessun viaggio ancora</h3>
-          <p className="text-muted-foreground mb-6">
-            Crea il tuo primo viaggio per iniziare a tracciare le spese!
+          <p className="text-muted-foreground mb-8 text-sm max-w-xs mx-auto">
+            Crea il tuo primo viaggio per iniziare a tracciare spese e itinerari!
           </p>
-          <button
+          <motion.button
+            whileTap={{ scale: 0.95 }}
             onClick={() => setShowCreateDrawer(true)}
-            className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-primary text-primary-foreground font-medium hover:bg-primary/90 transition-colors"
+            className="inline-flex items-center gap-2 px-6 py-3.5 rounded-xl bg-gradient-to-r from-primary to-violet-600 text-white font-semibold shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/30 transition-shadow"
           >
             <Plus className="w-5 h-5" />
             Crea il primo viaggio
-          </button>
+          </motion.button>
         </motion.div>
       ) : filteredTrips.length === 0 && hasActiveFilters ? (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="text-center py-12"
+          className="text-center py-16"
         >
-          <Search className="w-12 h-12 text-muted-foreground/30 mx-auto mb-4" />
+          <Search className="w-12 h-12 text-muted-foreground/20 mx-auto mb-4" />
           <h3 className="text-lg font-medium mb-2">Nessun risultato</h3>
           <p className="text-muted-foreground text-sm mb-4">
             Nessun viaggio corrisponde alla tua ricerca
@@ -229,7 +238,7 @@ export default function HomePage() {
               key={trip.id}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.1 }}
+              transition={{ delay: index * 0.08 }}
               className="relative group"
             >
               <div onClick={() => selectTrip(trip.id)}>
@@ -241,33 +250,36 @@ export default function HomePage() {
                   status={trip.status}
                   coverImage={trip.cover_image_url || undefined}
                   isSelected={currentTrip?.id === trip.id}
+                  destinationAddress={trip.destination_address || undefined}
                 />
               </div>
 
               {/* Action buttons */}
               <div className="absolute top-4 left-4 flex gap-2">
-                <button
+                <motion.button
+                  whileTap={{ scale: 0.9 }}
                   onClick={(e) => {
                     e.stopPropagation();
                     setTripToEdit(trip);
                     setShowCreateDrawer(true);
                   }}
-                  className="p-2.5 rounded-full bg-black/50 text-white backdrop-blur-sm opacity-0 group-hover:opacity-100 hover:bg-black/70 transition-all shadow-sm"
+                  className="p-2.5 rounded-full bg-black/40 text-white backdrop-blur-md opacity-0 group-hover:opacity-100 hover:bg-black/60 transition-all shadow-lg"
                   title="Modifica viaggio"
                 >
                   <Edit2 className="w-4 h-4" />
-                </button>
+                </motion.button>
 
-                <button
+                <motion.button
+                  whileTap={{ scale: 0.9 }}
                   onClick={(e) => {
                     e.stopPropagation();
                     setDeleteTrip({ id: trip.id, name: trip.name });
                   }}
-                  className="p-2.5 rounded-full bg-black/50 text-white backdrop-blur-sm opacity-0 group-hover:opacity-100 hover:bg-destructive transition-all shadow-sm"
+                  className="p-2.5 rounded-full bg-black/40 text-white backdrop-blur-md opacity-0 group-hover:opacity-100 hover:bg-destructive transition-all shadow-lg"
                   title="Elimina viaggio"
                 >
                   <Trash2 className="w-4 h-4" />
-                </button>
+                </motion.button>
               </div>
             </motion.div>
           ))}
@@ -279,9 +291,10 @@ export default function HomePage() {
         <motion.button
           initial={{ scale: 0 }}
           animate={{ scale: 1 }}
+          whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.9 }}
           onClick={() => setShowCreateDrawer(true)}
-          className="fixed bottom-24 right-6 w-14 h-14 rounded-full bg-gradient-to-r from-primary to-primary/80 text-white shadow-lg shadow-primary/30 flex items-center justify-center z-40"
+          className="fixed bottom-24 right-6 w-14 h-14 rounded-full bg-gradient-to-r from-primary to-violet-600 text-white shadow-xl shadow-primary/30 flex items-center justify-center z-40"
         >
           <Plus className="w-6 h-6" />
         </motion.button>

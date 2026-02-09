@@ -44,8 +44,8 @@ export default function WalletPage() {
       <header className="mb-6 space-y-4">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold">Portafoglio</h1>
-            <p className="text-muted-foreground text-sm">Gestisci le spese</p>
+            <h1 className="text-3xl font-bold tracking-tight">Portafoglio</h1>
+            <p className="text-muted-foreground text-xs mt-0.5">Gestisci le spese del viaggio</p>
           </div>
           <div className="flex items-center gap-2">
             <ActorSelector />
@@ -78,7 +78,7 @@ export default function WalletPage() {
           animate={{ scale: 1 }}
           whileTap={{ scale: 0.9 }}
           onClick={() => setShowAddExpense(true)}
-          className="fixed bottom-24 right-6 w-14 h-14 rounded-full bg-gradient-to-r from-primary to-primary/80 text-white shadow-lg shadow-primary/30 flex items-center justify-center"
+          className="fixed bottom-24 right-6 w-14 h-14 rounded-full bg-gradient-to-r from-primary to-violet-600 text-white shadow-xl shadow-primary/30 flex items-center justify-center"
         >
           <Plus className="w-6 h-6" />
         </motion.button>
