@@ -39,7 +39,9 @@ export function SettleDebtDrawer({ open, onOpenChange, balance, onSettled }: Set
                 category: 'other',
                 description: `💸 Saldo debito: ${debtor} → ${creditor}`,
                 payer: payerValue,
-                split_type: balance > 0 ? 'partner' : 'me',
+                // If Tina pays (balance > 0), Alex consumes ('me')
+                // If Alex pays (balance < 0), Tina consumes ('partner')
+                split_type: balance > 0 ? 'me' : 'partner',
                 expense_date: new Date().toISOString().split('T')[0],
             });
 
