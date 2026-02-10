@@ -5,7 +5,7 @@ import { TripSelector } from "@/components/trip-selector";
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Legend } from "recharts";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
-import { TrendingUp, PiggyBank, Calendar, MapPin, ChevronLeft, ChevronRight, X, CalendarDays } from "lucide-react";
+import { TrendingUp, PiggyBank, Calendar, MapPin, ChevronLeft, ChevronRight, X, CalendarDays, Gift } from "lucide-react";
 import { createPortal } from "react-dom";
 import { calculateSplit } from "@/lib/split-utils";
 import { calculateGlobalBalance } from "@/lib/balance-utils";
@@ -375,6 +375,7 @@ export default function StatsPage() {
     const [allExpenses, setAllExpenses] = useState<Expense[]>([]);
     const [loading, setLoading] = useState(true);
     const [showCalendar, setShowCalendar] = useState(false);
+    const [showGiftCalendar, setShowGiftCalendar] = useState(false);
 
     useEffect(() => {
         loadAllExpenses();
@@ -406,8 +407,9 @@ export default function StatsPage() {
 
     // Helper
     const isSettlement = (e: Expense) => e.description?.startsWith('💸');
-    const realExpenses = useMemo(() => expenses.filter(e => !isSettlement(e)), [expenses]);
-    const realAllExpenses = useMemo(() => allExpenses.filter(e => !isSettlement(e)), [allExpenses]);
+    const realExpenses = useMemo(() => expenses.filter(e => !isSettlement(e) && e.is_gift !== true), [expenses]);
+    const realAllExpenses = useMemo(() => allExpenses.filter(e => !isSettlement(e) && e.is_gift !== true), [allExpenses]);
+    const giftExpenses = useMemo(() => allExpenses.filter(e => !isSettlement(e) && e.is_gift === true), [allExpenses]);
 
     // Build trip date sets for the calendar
     const tripDates = useMemo(() => {
@@ -437,17 +439,27 @@ export default function StatsPage() {
         return map;
     }, [realAllExpenses]);
 
-    // Build trip cost by start date (allocate trip budget to start_date)
+    // Build trip cost by start date (EXCLUDE gift trips)
     const tripDateAmounts = useMemo(() => {
         const map = new Map<string, number>();
         trips.forEach(t => {
-            if (t.budget) {
+            if (t.budget && !t.is_gift) {
                 const key = t.start_date;
                 map.set(key, (map.get(key) || 0) + t.budget);
             }
         });
         return map;
     }, [trips]);
+
+    // Build gift expense amount by date
+    const giftDateAmounts = useMemo(() => {
+        const map = new Map<string, number>();
+        giftExpenses.forEach(e => {
+            const key = e.expense_date;
+            map.set(key, (map.get(key) || 0) + e.amount);
+        });
+        return map;
+    }, [giftExpenses]);
 
     // Stats per categoria (viaggio corrente) - EXCLUDE SETTLEMENTS
     const categoryData = Object.entries(
@@ -459,7 +471,31 @@ export default function StatsPage() {
         name: CATEGORY_LABELS[name] || name,
         value: Math.round(value * 100) / 100,
         color: CATEGORY_COLORS[name] || "#6b7280"
-    }));
+    })).sort((a, b) => b.value - a.value);
+
+    // Category breakdown for ALL-TIME storico (exclude gifts)
+    const storicoCategoryData = Object.entries(
+        realAllExpenses.reduce((acc, exp) => {
+            acc[exp.category] = (acc[exp.category] || 0) + exp.amount;
+            return acc;
+        }, {} as Record<string, number>)
+    ).map(([name, value]) => ({
+        name: CATEGORY_LABELS[name] || name,
+        value: Math.round(value * 100) / 100,
+        color: CATEGORY_COLORS[name] || "#6b7280"
+    })).sort((a, b) => b.value - a.value);
+
+    // Category breakdown for GIFT expenses
+    const giftCategoryData = Object.entries(
+        giftExpenses.reduce((acc, exp) => {
+            acc[exp.category] = (acc[exp.category] || 0) + exp.amount;
+            return acc;
+        }, {} as Record<string, number>)
+    ).map(([name, value]) => ({
+        name: CATEGORY_LABELS[name] || name,
+        value: Math.round(value * 100) / 100,
+        color: CATEGORY_COLORS[name] || "#6b7280"
+    })).sort((a, b) => b.value - a.value);
 
     // Stats per viaggio (tutti i viaggi) - EXCLUDE SETTLEMENTS
     const tripData = trips.map(trip => {
@@ -475,11 +511,12 @@ export default function StatsPage() {
     // Calcolo Bilancio Globale (include settlements)
     const globalBalance = calculateGlobalBalance(trips, allExpenses);
 
-    // Calcolo "Tu hai speso" REALE (senza rimborsi)
+    // Calcolo "Tu hai speso" REALE (senza rimborsi, senza regali)
     let displayAlexConsumed = 0;
     let displayTinaConsumed = 0;
 
     trips.forEach(trip => {
+        if (trip.is_gift) return;
         const tripCost = trip.budget || 0;
         const tripCostPerPerson = tripCost / 2;
         displayAlexConsumed += tripCostPerPerson;
@@ -493,14 +530,19 @@ export default function StatsPage() {
         displayTinaConsumed += split.tina;
     });
 
-    // Totali - EXCLUDE SETTLEMENTS
+    // Totali - EXCLUDE SETTLEMENTS AND GIFTS
     const totalSpentExpenses = realExpenses.reduce((sum, e) => sum + e.amount, 0);
-    const totalTripCost = currentTrip?.budget || 0;
+    const totalTripCost = (currentTrip && !currentTrip.is_gift) ? (currentTrip.budget || 0) : 0;
     const totalSpent = totalSpentExpenses + totalTripCost;
 
     const totalAllTimeExpenses = realAllExpenses.reduce((sum, e) => sum + e.amount, 0);
-    const totalAllTimeTrips = trips.reduce((sum, t) => sum + (t.budget || 0), 0);
+    const totalAllTimeTrips = trips.filter(t => !t.is_gift).reduce((sum, t) => sum + (t.budget || 0), 0);
     const totalAllTime = totalAllTimeExpenses + totalAllTimeTrips;
+
+    // Gift totals
+    const totalGiftExpenses = giftExpenses.reduce((sum, e) => sum + e.amount, 0);
+    const totalGiftTrips = trips.filter(t => t.is_gift).reduce((sum, t) => sum + (t.budget || 0), 0);
+    const totalGifts = totalGiftExpenses + totalGiftTrips;
 
     const avgPerTrip = trips.length > 0 ? totalAllTime / trips.length : 0;
 
@@ -643,9 +685,110 @@ export default function StatsPage() {
                     </div>
                     <p className="text-2xl font-bold text-orange-500">€{avgPerTrip.toFixed(0)}</p>
                 </motion.div>
+
+                {/* TOTALE REGALI */}
+                {totalGifts > 0 && (
+                    <motion.div
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.4 }}
+                        onClick={() => setShowGiftCalendar(true)}
+                        className="p-4 rounded-2xl bg-gradient-to-br from-pink-500/10 to-pink-600/5 border border-pink-500/20 cursor-pointer hover:border-pink-500/40 hover:shadow-lg hover:shadow-pink-500/10 transition-all active:scale-[0.97] group relative"
+                    >
+                        <div className="flex items-center gap-2 mb-2">
+                            <Gift className="w-4 h-4 text-pink-500" />
+                            <span className="text-xs text-muted-foreground">Totale regali</span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                            <p className="text-2xl font-bold text-pink-500">&euro;{totalGifts.toFixed(0)}</p>
+                            <CalendarDays className="w-5 h-5 text-pink-500/50 group-hover:text-pink-500 transition-colors" />
+                        </div>
+                        <p className="text-[10px] text-pink-500/60 mt-1 group-hover:text-pink-500/80 transition-colors">
+                            Tap per calendario &rarr;
+                        </p>
+                    </motion.div>
+                )}
             </div>
 
-            {/* Pie Chart - Spese per categoria */}
+            {/* Storico Category Breakdown */}
+            {storicoCategoryData.length > 0 && (
+                <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.35 }}
+                    className="mb-6 p-4 rounded-2xl bg-gradient-to-br from-green-500/5 to-emerald-500/5 border border-green-500/15"
+                >
+                    <h3 className="text-sm font-semibold text-muted-foreground mb-3 flex items-center gap-2">
+                        <TrendingUp className="w-4 h-4 text-green-500" />
+                        Categorie Storico
+                    </h3>
+                    <div className="space-y-2">
+                        {storicoCategoryData.map((cat) => {
+                            const pct = totalAllTimeExpenses > 0 ? (cat.value / totalAllTimeExpenses) * 100 : 0;
+                            return (
+                                <div key={cat.name} className="flex items-center gap-3">
+                                    <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: cat.color }} />
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex justify-between text-xs mb-0.5">
+                                            <span className="font-medium">{cat.name}</span>
+                                            <span className="text-muted-foreground">&euro;{cat.value.toFixed(0)} ({pct.toFixed(0)}%)</span>
+                                        </div>
+                                        <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+                                            <motion.div
+                                                initial={{ width: 0 }}
+                                                animate={{ width: `${pct}%` }}
+                                                transition={{ delay: 0.5, duration: 0.6 }}
+                                                className="h-full rounded-full"
+                                                style={{ backgroundColor: cat.color }}
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                </motion.div>
+            )}
+
+            {/* Gift Category Breakdown */}
+            {giftCategoryData.length > 0 && (
+                <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.4 }}
+                    className="mb-6 p-4 rounded-2xl bg-gradient-to-br from-pink-500/5 to-rose-500/5 border border-pink-500/15"
+                >
+                    <h3 className="text-sm font-semibold text-muted-foreground mb-3 flex items-center gap-2">
+                        <Gift className="w-4 h-4 text-pink-500" />
+                        Categorie Regali
+                    </h3>
+                    <div className="space-y-2">
+                        {giftCategoryData.map((cat) => {
+                            const pct = totalGiftExpenses > 0 ? (cat.value / totalGiftExpenses) * 100 : 0;
+                            return (
+                                <div key={cat.name} className="flex items-center gap-3">
+                                    <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: cat.color }} />
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex justify-between text-xs mb-0.5">
+                                            <span className="font-medium">{cat.name}</span>
+                                            <span className="text-muted-foreground">&euro;{cat.value.toFixed(0)} ({pct.toFixed(0)}%)</span>
+                                        </div>
+                                        <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+                                            <motion.div
+                                                initial={{ width: 0 }}
+                                                animate={{ width: `${pct}%` }}
+                                                transition={{ delay: 0.6, duration: 0.6 }}
+                                                className="h-full rounded-full"
+                                                style={{ backgroundColor: cat.color }}
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                </motion.div>
+            )}
             {categoryData.length > 0 && (
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
@@ -751,7 +894,7 @@ export default function StatsPage() {
                 </div>
             )}
 
-            {/* Calendar Overlay */}
+            {/* Calendar Overlay - Storico */}
             <StatsCalendar
                 open={showCalendar}
                 onClose={() => setShowCalendar(false)}
@@ -759,6 +902,16 @@ export default function StatsPage() {
                 expenseDateAmounts={expenseDateAmounts}
                 tripDateAmounts={tripDateAmounts}
                 totalAllTime={totalAllTime}
+            />
+
+            {/* Calendar Overlay - Regali */}
+            <StatsCalendar
+                open={showGiftCalendar}
+                onClose={() => setShowGiftCalendar(false)}
+                tripDates={tripDates}
+                expenseDateAmounts={giftDateAmounts}
+                tripDateAmounts={new Map()}
+                totalAllTime={totalGifts}
             />
         </div>
     );

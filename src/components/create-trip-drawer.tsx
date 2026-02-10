@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { motion } from "framer-motion";
-import { X, Upload, Loader2, MapPin, Building2 } from "lucide-react";
+import { X, Upload, Loader2, Building2 } from "lucide-react";
 import { Drawer } from "vaul";
 import { cn } from "@/lib/utils";
 import { useTrip } from "@/lib/trip-context";

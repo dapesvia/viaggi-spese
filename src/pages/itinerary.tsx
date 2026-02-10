@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo, useRef } from "react";
-import { Plus, Loader2, Trash2, MapPin, Clock, Tag, ChevronLeft, ChevronRight, Building2, Navigation } from "lucide-react";
+import { Plus, Loader2, Trash2, MapPin, Clock, Tag, ChevronLeft, ChevronRight, Building2, Navigation, Route, ExternalLink } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { supabase, type ItineraryItem } from "@/lib/supabase";
@@ -145,6 +145,61 @@ export default function ItineraryPage() {
       counts[d] = (counts[d] || 0) + 1;
     });
     return counts;
+  }, [items]);
+
+  // Build multi-stop route URLs
+  const buildGoogleMapsRouteUrl = (stops: { lat: number; lng: number; name: string }[]) => {
+    if (stops.length === 0) return null;
+    if (stops.length === 1) {
+      return `https://www.google.com/maps/dir/?api=1&destination=${stops[0].lat},${stops[0].lng}`;
+    }
+    // Google Maps: origin + destination + waypoints
+    const origin = `${stops[0].lat},${stops[0].lng}`;
+    const destination = `${stops[stops.length - 1].lat},${stops[stops.length - 1].lng}`;
+    const waypoints = stops.slice(1, -1).map(s => `${s.lat},${s.lng}`).join('|');
+    let url = `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}`;
+    if (waypoints) url += `&waypoints=${waypoints}`;
+    return url;
+  };
+
+  const buildAppleMapsRouteUrl = (stops: { lat: number; lng: number; name: string }[]) => {
+    if (stops.length === 0) return null;
+    if (stops.length === 1) {
+      return `https://maps.apple.com/?daddr=${stops[0].lat},${stops[0].lng}`;
+    }
+    // Apple Maps multi-stop: saddr for origin, daddr for stops separated by " to "
+    const saddr = `${stops[0].lat},${stops[0].lng}`;
+    const daddrs = stops.slice(1).map(s => `${s.lat},${s.lng}`).join('+to:');
+    return `https://maps.apple.com/?saddr=${saddr}&daddr=${daddrs}`;
+  };
+
+  const buildWazeRouteUrl = (stops: { lat: number; lng: number; name: string }[]) => {
+    // Waze only supports a single destination, so use the last stop
+    if (stops.length === 0) return null;
+    const dest = stops[stops.length - 1];
+    return `https://waze.com/ul?ll=${dest.lat},${dest.lng}&navigate=yes`;
+  };
+
+  // Navigable stops for current day
+  const dayNavigableStops = useMemo(() => {
+    return dayItems
+      .filter(item => item.location_lat && item.location_lng)
+      .map(item => ({
+        lat: item.location_lat!,
+        lng: item.location_lng!,
+        name: item.location_name || item.title,
+      }));
+  }, [dayItems]);
+
+  // Navigable stops for entire trip (all days, in order)
+  const allNavigableStops = useMemo(() => {
+    return items
+      .filter(item => item.location_lat && item.location_lng)
+      .map(item => ({
+        lat: item.location_lat!,
+        lng: item.location_lng!,
+        name: item.location_name || item.title,
+      }));
   }, [items]);
 
   // Scroll selected day pill into view
@@ -338,6 +393,65 @@ export default function ItineraryPage() {
         </div>
       )}
 
+      {/* Day Route Navigation */}
+      {dayNavigableStops.length >= 1 && selectedDay && (
+        <motion.div
+          initial={{ opacity: 0, y: 5 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-4 p-3 rounded-xl bg-gradient-to-r from-blue-500/10 via-cyan-500/5 to-green-500/10 border border-blue-500/20"
+        >
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <Route className="w-4 h-4 text-blue-400" />
+              <span className="text-xs font-semibold text-muted-foreground">
+                Percorso del giorno ({dayNavigableStops.length} {dayNavigableStops.length === 1 ? 'tappa' : 'tappe'})
+              </span>
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {buildGoogleMapsRouteUrl(dayNavigableStops) && (
+              <a
+                href={buildGoogleMapsRouteUrl(dayNavigableStops)!}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 text-xs px-3 py-2 rounded-lg bg-blue-500/15 text-blue-400 hover:bg-blue-500/25 transition-colors font-semibold active:scale-95"
+              >
+                <ExternalLink className="w-3 h-3" />
+                Google Maps
+              </a>
+            )}
+            {buildWazeRouteUrl(dayNavigableStops) && (
+              <a
+                href={buildWazeRouteUrl(dayNavigableStops)!}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 text-xs px-3 py-2 rounded-lg bg-cyan-500/15 text-cyan-400 hover:bg-cyan-500/25 transition-colors font-semibold active:scale-95"
+              >
+                <ExternalLink className="w-3 h-3" />
+                Waze
+              </a>
+            )}
+            {buildAppleMapsRouteUrl(dayNavigableStops) && (
+              <a
+                href={buildAppleMapsRouteUrl(dayNavigableStops)!}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 text-xs px-3 py-2 rounded-lg bg-green-500/15 text-green-400 hover:bg-green-500/25 transition-colors font-semibold active:scale-95"
+              >
+                <ExternalLink className="w-3 h-3" />
+                Apple Maps
+              </a>
+            )}
+          </div>
+          <p className="text-[10px] text-muted-foreground/70 mt-1.5">
+            {dayNavigableStops.length >= 2
+              ? `Da ${dayNavigableStops[0].name} a ${dayNavigableStops[dayNavigableStops.length - 1].name}`
+              : `Naviga verso ${dayNavigableStops[0].name}`
+            }
+          </p>
+        </motion.div>
+      )}
+
       {/* Day Content */}
       {loading ? (
         <div className="flex items-center justify-center py-12">
@@ -526,6 +640,56 @@ export default function ItineraryPage() {
               <p className="text-xs text-muted-foreground">Giorni pianificati</p>
             </div>
           </div>
+
+          {/* Full Trip Route Navigation */}
+          {allNavigableStops.length >= 2 && (
+            <div className="mt-4 pt-3 border-t border-border/30">
+              <div className="flex items-center gap-2 mb-2">
+                <Route className="w-4 h-4 text-primary" />
+                <span className="text-xs font-semibold text-muted-foreground">
+                  Percorso completo ({allNavigableStops.length} tappe)
+                </span>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {buildGoogleMapsRouteUrl(allNavigableStops) && (
+                  <a
+                    href={buildGoogleMapsRouteUrl(allNavigableStops)!}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 text-xs px-3 py-2 rounded-lg bg-blue-500/15 text-blue-400 hover:bg-blue-500/25 transition-colors font-semibold active:scale-95"
+                  >
+                    <ExternalLink className="w-3 h-3" />
+                    Google Maps
+                  </a>
+                )}
+                {buildWazeRouteUrl(allNavigableStops) && (
+                  <a
+                    href={buildWazeRouteUrl(allNavigableStops)!}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 text-xs px-3 py-2 rounded-lg bg-cyan-500/15 text-cyan-400 hover:bg-cyan-500/25 transition-colors font-semibold active:scale-95"
+                  >
+                    <ExternalLink className="w-3 h-3" />
+                    Waze
+                  </a>
+                )}
+                {buildAppleMapsRouteUrl(allNavigableStops) && (
+                  <a
+                    href={buildAppleMapsRouteUrl(allNavigableStops)!}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 text-xs px-3 py-2 rounded-lg bg-green-500/15 text-green-400 hover:bg-green-500/25 transition-colors font-semibold active:scale-95"
+                  >
+                    <ExternalLink className="w-3 h-3" />
+                    Apple Maps
+                  </a>
+                )}
+              </div>
+              <p className="text-[10px] text-muted-foreground/70 mt-1.5">
+                Da {allNavigableStops[0].name} a {allNavigableStops[allNavigableStops.length - 1].name}
+              </p>
+            </div>
+          )}
         </motion.div>
       )}
 
