@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo, useRef } from "react";
-import { Plus, Loader2, Trash2, MapPin, Clock, Tag, ChevronLeft, ChevronRight, Building2, Navigation, Route, ExternalLink } from "lucide-react";
+import { Plus, Loader2, Trash2, MapPin, Clock, Tag, ChevronLeft, ChevronRight, Building2, Navigation, Route, ExternalLink, Pencil } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { supabase, type ItineraryItem } from "@/lib/supabase";
@@ -33,7 +33,9 @@ export default function ItineraryPage() {
   const [loading, setLoading] = useState(true);
   const [showAddDrawer, setShowAddDrawer] = useState(false);
   const [selectedDayIndex, setSelectedDayIndex] = useState(0);
+
   const dayScrollRef = useRef<HTMLDivElement>(null);
+  const [editingItem, setEditingItem] = useState<ItineraryItem | null>(null);
 
   // Current time for "past item" check
   const [now, setNow] = useState(new Date());
@@ -641,14 +643,34 @@ export default function ItineraryPage() {
                               )}
                             </div>
 
-                            <button
-                              onClick={() => deleteItem(item.id)}
-                              className="p-2 rounded-lg opacity-0 group-hover:opacity-100 hover:bg-destructive/10 transition-all flex-shrink-0"
-                            >
-                              <Trash2 className="w-4 h-4 text-destructive" />
-                            </button>
+
+
+                            <div className="flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setEditingItem(item);
+                                  setShowAddDrawer(true);
+                                }}
+                                className="p-2 rounded-lg hover:bg-muted transition-colors"
+                                title="Modifica"
+                              >
+                                <Pencil className="w-4 h-4 text-muted-foreground" />
+                              </button>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  deleteItem(item.id);
+                                }}
+                                className="p-2 rounded-lg hover:bg-destructive/10 transition-colors"
+                                title="Elimina"
+                              >
+                                <Trash2 className="w-4 h-4 text-destructive" />
+                              </button>
+                            </div>
                           </div>
                         </div>
+
                       </motion.div>
                     );
                   })}
@@ -659,92 +681,105 @@ export default function ItineraryPage() {
         </AnimatePresence>
       )}
 
+
       {/* Overview: all days summary */}
-      {items.length > 0 && tripDays.length > 1 && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.3 }}
-          className="mt-8 p-4 rounded-2xl bg-muted/30 border border-border/50"
-        >
-          <h4 className="text-sm font-semibold text-muted-foreground mb-3 uppercase tracking-wider">
-            Riepilogo viaggio
-          </h4>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-            <div className="text-center p-3 rounded-xl bg-background/50">
-              <p className="text-2xl font-bold text-primary">{items.length}</p>
-              <p className="text-xs text-muted-foreground">Attività totali</p>
-            </div>
-            <div className="text-center p-3 rounded-xl bg-background/50">
-              <p className="text-2xl font-bold text-primary">{tripDays.length}</p>
-              <p className="text-xs text-muted-foreground">Giorni</p>
-            </div>
-            <div className="text-center p-3 rounded-xl bg-background/50">
-              <p className="text-2xl font-bold text-primary">
-                {Object.keys(itemCountByDay).length}
-              </p>
-              <p className="text-xs text-muted-foreground">Giorni pianificati</p>
-            </div>
-          </div>
-
-          {/* Full Trip Route Navigation */}
-          {allNavigableStops.length >= 2 && (
-            <div className="mt-4 pt-3 border-t border-border/30">
-              <div className="flex items-center gap-2 mb-2">
-                <Route className="w-4 h-4 text-primary" />
-                <span className="text-xs font-semibold text-muted-foreground">
-                  Percorso completo ({allNavigableStops.length} tappe)
-                </span>
+      {
+        items.length > 0 && tripDays.length > 1 && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.3 }}
+            className="mt-8 p-4 rounded-2xl bg-muted/30 border border-border/50"
+          >
+            <h4 className="text-sm font-semibold text-muted-foreground mb-3 uppercase tracking-wider">
+              Riepilogo viaggio
+            </h4>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              <div className="text-center p-3 rounded-xl bg-background/50">
+                <p className="text-2xl font-bold text-primary">{items.length}</p>
+                <p className="text-xs text-muted-foreground">Attività totali</p>
               </div>
-              <div className="flex flex-wrap gap-2">
-                {buildGoogleMapsRouteUrl(allNavigableStops) && (
-                  <a
-                    href={buildGoogleMapsRouteUrl(allNavigableStops)!}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1.5 text-xs px-3 py-2 rounded-lg bg-blue-500/15 text-blue-400 hover:bg-blue-500/25 transition-colors font-semibold active:scale-95"
-                  >
-                    <ExternalLink className="w-3 h-3" />
-                    Google Maps
-                  </a>
-                )}
-                {buildWazeRouteUrl(allNavigableStops) && (
-                  <a
-                    href={buildWazeRouteUrl(allNavigableStops)!}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1.5 text-xs px-3 py-2 rounded-lg bg-cyan-500/15 text-cyan-400 hover:bg-cyan-500/25 transition-colors font-semibold active:scale-95"
-                  >
-                    <ExternalLink className="w-3 h-3" />
-                    Waze
-                  </a>
-                )}
-                {buildAppleMapsRouteUrl(allNavigableStops) && (
-                  <a
-                    href={buildAppleMapsRouteUrl(allNavigableStops)!}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1.5 text-xs px-3 py-2 rounded-lg bg-green-500/15 text-green-400 hover:bg-green-500/25 transition-colors font-semibold active:scale-95"
-                  >
-                    <ExternalLink className="w-3 h-3" />
-                    Apple Maps
-                  </a>
-                )}
+              <div className="text-center p-3 rounded-xl bg-background/50">
+                <p className="text-2xl font-bold text-primary">{tripDays.length}</p>
+                <p className="text-xs text-muted-foreground">Giorni</p>
               </div>
-              <p className="text-[10px] text-muted-foreground/70 mt-1.5">
-                Da {allNavigableStops[0].name} a {allNavigableStops[allNavigableStops.length - 1].name}
-              </p>
+              <div className="text-center p-3 rounded-xl bg-background/50">
+                <p className="text-2xl font-bold text-primary">
+                  {Object.keys(itemCountByDay).length}
+                </p>
+                <p className="text-xs text-muted-foreground">Giorni pianificati</p>
+              </div>
             </div>
-          )}
-        </motion.div>
-      )}
 
-      <AddItineraryDrawer
+            {/* Full Trip Route Navigation */}
+            {allNavigableStops.length >= 2 && (
+              <div className="mt-4 pt-3 border-t border-border/30">
+                <div className="flex items-center gap-2 mb-2">
+                  <Route className="w-4 h-4 text-primary" />
+                  <span className="text-xs font-semibold text-muted-foreground">
+                    Percorso completo ({allNavigableStops.length} tappe)
+                  </span>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {buildGoogleMapsRouteUrl(allNavigableStops) && (
+                    <a
+                      href={buildGoogleMapsRouteUrl(allNavigableStops)!}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 text-xs px-3 py-2 rounded-lg bg-blue-500/15 text-blue-400 hover:bg-blue-500/25 transition-colors font-semibold active:scale-95"
+                    >
+                      <ExternalLink className="w-3 h-3" />
+                      Google Maps
+                    </a>
+                  )}
+                  {buildWazeRouteUrl(allNavigableStops) && (
+                    <a
+                      href={buildWazeRouteUrl(allNavigableStops)!}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 text-xs px-3 py-2 rounded-lg bg-cyan-500/15 text-cyan-400 hover:bg-cyan-500/25 transition-colors font-semibold active:scale-95"
+                    >
+                      <ExternalLink className="w-3 h-3" />
+                      Waze
+                    </a>
+                  )}
+                  {buildAppleMapsRouteUrl(allNavigableStops) && (
+                    <a
+                      href={buildAppleMapsRouteUrl(allNavigableStops)!}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 text-xs px-3 py-2 rounded-lg bg-green-500/15 text-green-400 hover:bg-green-500/25 transition-colors font-semibold active:scale-95"
+                    >
+                      <ExternalLink className="w-3 h-3" />
+                      Apple Maps
+                    </a>
+                  )}
+                </div>
+                <p className="text-[10px] text-muted-foreground/70 mt-1.5">
+                  Da {allNavigableStops[0].name} a {allNavigableStops[allNavigableStops.length - 1].name}
+                </p>
+              </div>
+            )}
+          </motion.div>
+        )
+      }
+
+
+      < AddItineraryDrawer
         open={showAddDrawer}
-        onOpenChange={setShowAddDrawer}
-        onSaved={loadItems}
+        onOpenChange={(open) => {
+          setShowAddDrawer(open);
+          if (!open) setEditingItem(null);
+        }
+        }
+        onSaved={() => {
+          loadItems();
+          setEditingItem(null);
+        }
+        }
         defaultDate={selectedDay?.dateStr}
+        initialData={editingItem}
       />
-    </div>
+    </div >
   );
 }

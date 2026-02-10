@@ -9,6 +9,7 @@ import { useToast } from "@/components/toast";
 import { LocationAutocomplete } from "@/components/location-autocomplete";
 import { MobileDatePicker } from "@/components/mobile-date-picker";
 import { MobileTimePicker } from "@/components/mobile-time-picker";
+import { type ItineraryItem } from "@/lib/supabase";
 
 const ITEM_TYPES = [
     { id: "flight", label: "Volo", emoji: "✈️" },
@@ -23,9 +24,10 @@ interface AddItineraryDrawerProps {
     onOpenChange: (open: boolean) => void;
     onSaved: () => void;
     defaultDate?: string; // YYYY-MM-DD format to pre-fill
+    initialData?: ItineraryItem | null;
 }
 
-export function AddItineraryDrawer({ open, onOpenChange, onSaved, defaultDate }: AddItineraryDrawerProps) {
+export function AddItineraryDrawer({ open, onOpenChange, onSaved, defaultDate, initialData }: AddItineraryDrawerProps) {
     const { currentTrip } = useTrip();
     const { toast } = useToast();
 
@@ -41,13 +43,44 @@ export function AddItineraryDrawer({ open, onOpenChange, onSaved, defaultDate }:
     const [bookingRef, setBookingRef] = useState("");
     const [loading, setLoading] = useState(false);
 
-    // Pre-fill date when drawer opens with a defaultDate
+    // Pre-fill date when drawer opens
     useEffect(() => {
-        if (open && defaultDate && !date) {
-            setDate(defaultDate);
-            setTime("09:00");
+        if (open) {
+            if (initialData) {
+                // Edit Mode
+                setType(initialData.type);
+                setTitle(initialData.title);
+                setDescription(initialData.description || "");
+
+                // Handle Datetime
+                // initialData.datetime is likely "YYYY-MM-DDTHH:mm:SS" or similar
+                // We use string splitting to avoid timezone shifts if ISO is saved locally
+                // Assuming format YYYY-MM-DDTHH:mm...
+                const datePart = initialData.datetime.split('T')[0];
+                const timePart = initialData.datetime.split('T')[1]?.slice(0, 5) || "09:00";
+
+                setDate(datePart);
+                setTime(timePart);
+
+                setLocationName(initialData.location_name || "");
+                setLocationLat(initialData.location_lat || null);
+                setLocationLng(initialData.location_lng || null);
+                setBookingRef(initialData.booking_reference || "");
+            } else if (!date && defaultDate) {
+                // Create Mode with default date
+                setDate(defaultDate);
+                setTime("09:00");
+                // Reset other fields
+                setType("activity");
+                setTitle("");
+                setDescription("");
+                setLocationName("");
+                setLocationLat(null);
+                setLocationLng(null);
+                setBookingRef("");
+            }
         }
-    }, [open, defaultDate]);
+    }, [open, defaultDate, initialData]);
 
     const handleSave = async () => {
         if (!title || !date || !time || !currentTrip) return;
@@ -56,7 +89,7 @@ export function AddItineraryDrawer({ open, onOpenChange, onSaved, defaultDate }:
 
         setLoading(true);
         try {
-            const { error } = await supabase.from('itinerary_items').insert({
+            const itemData = {
                 trip_id: currentTrip.id,
                 type,
                 title,
@@ -66,9 +99,22 @@ export function AddItineraryDrawer({ open, onOpenChange, onSaved, defaultDate }:
                 location_lat: locationLat,
                 location_lng: locationLng,
                 booking_reference: bookingRef || null
-            });
+            };
 
-            if (error) throw error;
+            if (initialData) {
+                // Update
+                const { error } = await supabase
+                    .from('itinerary_items')
+                    .update(itemData)
+                    .eq('id', initialData.id);
+                if (error) throw error;
+            } else {
+                // Insert
+                const { error } = await supabase
+                    .from('itinerary_items')
+                    .insert(itemData);
+                if (error) throw error;
+            }
 
             onOpenChange(false);
             onSaved();
@@ -108,10 +154,9 @@ export function AddItineraryDrawer({ open, onOpenChange, onSaved, defaultDate }:
                     <div className="flex-shrink-0 mx-auto w-12 h-1.5 rounded-full bg-muted my-4" />
 
                     <div className="flex-1 overflow-y-auto px-4 pb-6">
-                        {/* Header */}
                         <div className="flex items-center justify-between mb-4">
                             <div>
-                                <h2 className="text-2xl font-bold">Nuovo Elemento</h2>
+                                <h2 className="text-2xl font-bold">{initialData ? "Modifica Elemento" : "Nuovo Elemento"}</h2>
                                 <p className="text-sm text-muted-foreground">{currentTrip.name}</p>
                             </div>
                             <button
