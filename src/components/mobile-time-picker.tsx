@@ -1,7 +1,6 @@
 import { useState, useRef, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
 import { X, Clock } from "lucide-react";
-import { createPortal } from "react-dom";
+import { Drawer } from "vaul";
 import { cn } from "@/lib/utils";
 
 interface MobileTimePickerProps {
@@ -62,7 +61,7 @@ export function MobileTimePicker({ value, onChange, label }: MobileTimePickerPro
     };
 
     return (
-        <>
+        <Drawer.Root open={isOpen} onOpenChange={setIsOpen}>
             <div onClick={() => setIsOpen(true)}>
                 {label && (
                     <label className="text-sm font-medium text-muted-foreground mb-2 block pointer-events-none">
@@ -80,114 +79,100 @@ export function MobileTimePicker({ value, onChange, label }: MobileTimePickerPro
                 </button>
             </div>
 
-            {isOpen && createPortal(
-                <AnimatePresence>
-                    <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        className="fixed inset-0 z-[50000] flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm"
-                        onClick={() => setIsOpen(false)}
-                    >
-                        <motion.div
-                            initial={{ y: "100%" }}
-                            animate={{ y: 0 }}
-                            exit={{ y: "100%" }}
-                            transition={{ type: "spring", damping: 25, stiffness: 300 }}
-                            onClick={(e) => e.stopPropagation()}
-                            className="w-full max-w-md bg-background rounded-t-3xl sm:rounded-3xl overflow-hidden pb-safe"
+            <Drawer.Portal>
+                <Drawer.Overlay className="fixed inset-0 bg-black/40 z-[60]" />
+                <Drawer.Content
+                    className="fixed bottom-0 left-0 right-0 z-[61] flex flex-col rounded-t-3xl bg-background max-h-[90vh] outline-none"
+                    style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+                >
+                    {/* Header */}
+                    <div className="flex items-center justify-between p-4 border-b border-border">
+                        <button
+                            onClick={() => setIsOpen(false)}
+                            className="p-2 rounded-full hover:bg-muted transition-colors"
                         >
-                            {/* Header */}
-                            <div className="flex items-center justify-between p-4 border-b border-border">
-                                <button
-                                    onClick={() => setIsOpen(false)}
-                                    className="p-2 rounded-full hover:bg-muted transition-colors"
+                            <X className="w-5 h-5" />
+                        </button>
+                        <h3 className="text-lg font-bold">Seleziona Ora</h3>
+                        <button
+                            onClick={confirmSelection}
+                            className="px-4 py-2 bg-primary text-primary-foreground rounded-lg font-semibold text-sm"
+                        >
+                            Fatto
+                        </button>
+                    </div>
+
+                    {/* Wheel Picker */}
+                    <div className="relative h-64 flex justify-center items-center bg-background/50">
+                        {/* Highlight Bar */}
+                        <div className="absolute left-0 right-0 h-10 bg-muted/50 rounded-lg mx-4 pointer-events-none z-0" />
+
+                        <div className="flex w-full px-8 gap-4 h-full relative z-10">
+                            {/* Hours Column */}
+                            <div className="flex-1 text-center relative">
+                                <span className="text-xs font-semibold text-muted-foreground absolute -top-6 left-0 right-0">Ore</span>
+                                <div
+                                    ref={hourRef}
+                                    onScroll={(e) => handleScroll('hour', e)}
+                                    className="h-full overflow-y-auto snap-y snap-mandatory no-scrollbar"
+                                    style={{ scrollBehavior: 'smooth' }}
                                 >
-                                    <X className="w-5 h-5" />
-                                </button>
-                                <h3 className="text-lg font-bold">Seleziona Ora</h3>
-                                <button
-                                    onClick={confirmSelection}
-                                    className="px-4 py-2 bg-primary text-primary-foreground rounded-lg font-semibold text-sm"
-                                >
-                                    Fatto
-                                </button>
-                            </div>
-
-                            {/* Wheel Picker */}
-                            <div className="relative h-64 flex justify-center items-center bg-background/50">
-                                {/* Highlight Bar */}
-                                <div className="absolute left-0 right-0 h-10 bg-muted/50 rounded-lg mx-4 pointer-events-none z-0" />
-
-                                <div className="flex w-full px-8 gap-4 h-full relative z-10">
-                                    {/* Hours Column */}
-                                    <div className="flex-1 text-center relative">
-                                        <span className="text-xs font-semibold text-muted-foreground absolute -top-6 left-0 right-0">Ore</span>
+                                    <div style={{ height: ITEM_HEIGHT * 2.5 }} /> {/* Spacer */}
+                                    {HOURS.map(h => (
                                         <div
-                                            ref={hourRef}
-                                            onScroll={(e) => handleScroll('hour', e)}
-                                            className="h-full overflow-y-auto snap-y snap-mandatory no-scrollbar"
-                                            style={{ scrollBehavior: 'smooth' }}
+                                            key={h}
+                                            className={cn(
+                                                "h-10 flex items-center justify-center snap-center text-xl transition-all font-medium cursor-pointer",
+                                                selectedHour === h ? "text-foreground scale-110 font-bold" : "text-muted-foreground/60"
+                                            )}
+                                            onClick={() => {
+                                                if (hourRef.current) {
+                                                    hourRef.current.scrollTop = HOURS.indexOf(h) * ITEM_HEIGHT;
+                                                }
+                                            }}
                                         >
-                                            <div style={{ height: ITEM_HEIGHT * 2.5 }} /> {/* Spacer */}
-                                            {HOURS.map(h => (
-                                                <div
-                                                    key={h}
-                                                    className={cn(
-                                                        "h-10 flex items-center justify-center snap-center text-xl transition-all font-medium cursor-pointer",
-                                                        selectedHour === h ? "text-foreground scale-110 font-bold" : "text-muted-foreground/60"
-                                                    )}
-                                                    onClick={() => {
-                                                        if (hourRef.current) {
-                                                            hourRef.current.scrollTop = HOURS.indexOf(h) * ITEM_HEIGHT;
-                                                        }
-                                                    }}
-                                                >
-                                                    {h}
-                                                </div>
-                                            ))}
-                                            <div style={{ height: ITEM_HEIGHT * 2.5 }} /> {/* Spacer */}
+                                            {h}
                                         </div>
-                                    </div>
-
-                                    <div className="flex items-center font-bold text-xl pb-1">:</div>
-
-                                    {/* Minutes Column */}
-                                    <div className="flex-1 text-center relative">
-                                        <span className="text-xs font-semibold text-muted-foreground absolute -top-6 left-0 right-0">Minuti</span>
-                                        <div
-                                            ref={minuteRef}
-                                            onScroll={(e) => handleScroll('minute', e)}
-                                            className="h-full overflow-y-auto snap-y snap-mandatory no-scrollbar"
-                                            style={{ scrollBehavior: 'smooth' }}
-                                        >
-                                            <div style={{ height: ITEM_HEIGHT * 2.5 }} /> {/* Spacer */}
-                                            {MINUTES.map(m => (
-                                                <div
-                                                    key={m}
-                                                    className={cn(
-                                                        "h-10 flex items-center justify-center snap-center text-xl transition-all font-medium cursor-pointer",
-                                                        selectedMinute === m ? "text-foreground scale-110 font-bold" : "text-muted-foreground/60"
-                                                    )}
-                                                    onClick={() => {
-                                                        if (minuteRef.current) {
-                                                            minuteRef.current.scrollTop = MINUTES.indexOf(m) * ITEM_HEIGHT;
-                                                        }
-                                                    }}
-                                                >
-                                                    {m}
-                                                </div>
-                                            ))}
-                                            <div style={{ height: ITEM_HEIGHT * 2.5 }} /> {/* Spacer */}
-                                        </div>
-                                    </div>
+                                    ))}
+                                    <div style={{ height: ITEM_HEIGHT * 2.5 }} /> {/* Spacer */}
                                 </div>
                             </div>
-                        </motion.div>
-                    </motion.div>
-                </AnimatePresence>,
-                document.body
-            )}
-        </>
+
+                            <div className="flex items-center font-bold text-xl pb-1">:</div>
+
+                            {/* Minutes Column */}
+                            <div className="flex-1 text-center relative">
+                                <span className="text-xs font-semibold text-muted-foreground absolute -top-6 left-0 right-0">Minuti</span>
+                                <div
+                                    ref={minuteRef}
+                                    onScroll={(e) => handleScroll('minute', e)}
+                                    className="h-full overflow-y-auto snap-y snap-mandatory no-scrollbar"
+                                    style={{ scrollBehavior: 'smooth' }}
+                                >
+                                    <div style={{ height: ITEM_HEIGHT * 2.5 }} /> {/* Spacer */}
+                                    {MINUTES.map(m => (
+                                        <div
+                                            key={m}
+                                            className={cn(
+                                                "h-10 flex items-center justify-center snap-center text-xl transition-all font-medium cursor-pointer",
+                                                selectedMinute === m ? "text-foreground scale-110 font-bold" : "text-muted-foreground/60"
+                                            )}
+                                            onClick={() => {
+                                                if (minuteRef.current) {
+                                                    minuteRef.current.scrollTop = MINUTES.indexOf(m) * ITEM_HEIGHT;
+                                                }
+                                            }}
+                                        >
+                                            {m}
+                                        </div>
+                                    ))}
+                                    <div style={{ height: ITEM_HEIGHT * 2.5 }} /> {/* Spacer */}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </Drawer.Content>
+            </Drawer.Portal>
+        </Drawer.Root>
     );
 }
