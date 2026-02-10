@@ -35,6 +35,15 @@ export default function ItineraryPage() {
   const [selectedDayIndex, setSelectedDayIndex] = useState(0);
   const dayScrollRef = useRef<HTMLDivElement>(null);
 
+  // Current time for "past item" check
+  const [now, setNow] = useState(new Date());
+
+  // Update "now" every minute to keep UI fresh
+  useEffect(() => {
+    const interval = setInterval(() => setNow(new Date()), 60000);
+    return () => clearInterval(interval);
+  }, []);
+
   // Generate array of days from trip
   const tripDays = useMemo(() => {
     if (!currentTrip) return [];
@@ -200,7 +209,8 @@ export default function ItineraryPage() {
   // Navigable stops for current day
   const dayNavigableStops = useMemo(() => {
     return dayItems
-      .filter(item => (item.location_lat && item.location_lng) || item.location_name)
+      // .filter(item => (item.location_lat && item.location_lng) || item.location_name)
+      // Allow all items as stops, fallback to title if location missing
       .map(item => ({
         lat: item.location_lat || undefined,
         lng: item.location_lng || undefined,
@@ -211,7 +221,7 @@ export default function ItineraryPage() {
   // Navigable stops for entire trip (all days, in order)
   const allNavigableStops = useMemo(() => {
     return items
-      .filter(item => (item.location_lat && item.location_lng) || item.location_name)
+      // .filter(item => (item.location_lat && item.location_lng) || item.location_name)
       .map(item => ({
         lat: item.location_lat || undefined,
         lng: item.location_lng || undefined,
@@ -509,13 +519,18 @@ export default function ItineraryPage() {
                 <div className="space-y-3">
                   {dayItems.map((item, index) => {
                     const typeInfo = TYPE_INFO[item.type] || { emoji: "📍", label: "Altro", color: "from-muted to-muted border-border" };
+                    const isPast = new Date(item.datetime) < now;
+
                     return (
                       <motion.div
                         key={item.id}
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: index * 0.06 }}
-                        className="relative flex gap-3 group"
+                        className={cn(
+                          "relative flex gap-3 group transition-opacity duration-500",
+                          isPast && "opacity-50 grayscale"
+                        )}
                       >
                         {/* Timeline dot */}
                         <div className="flex-shrink-0 w-10 flex flex-col items-center pt-4 z-10">
@@ -593,6 +608,20 @@ export default function ItineraryPage() {
                                         title="Cerca in Google Maps"
                                       >
                                         🗺️ Naviga
+                                      </a>
+                                    )}
+
+                                    {/* Fallback to Title if no location info */}
+                                    {!item.location_name && (!item.location_lat || !item.location_lng) && (
+                                      <a
+                                        href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(item.title)}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        onClick={(e) => e.stopPropagation()}
+                                        className="inline-flex items-center gap-1 text-[10px] px-2 py-1 rounded-full bg-blue-500/15 text-blue-400 hover:bg-blue-500/25 transition-colors font-medium"
+                                        title={`Cerca "${item.title}" in Maps`}
+                                      >
+                                        🗺️ Cerca
                                       </a>
                                     )}
                                   </div>
