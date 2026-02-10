@@ -72,9 +72,14 @@ function SwipeableExpenseRow({
         onDragEnd={handleDragEnd}
         className="flex items-center gap-3 p-4 glass border border-border/50 group relative bg-background rounded-xl"
       >
-        <div className="text-2xl">{CATEGORY_ICONS[expense.category]}</div>
+        <div className="text-2xl">
+          {expense.is_gift ? '🎁' : CATEGORY_ICONS[expense.category]}
+        </div>
         <div className="flex-1 min-w-0">
-          <p className="font-medium truncate">{expense.description || "Spesa"}</p>
+          <p className="font-medium truncate">
+            {expense.is_gift && <span className="text-purple-500 mr-1">🎁</span>}
+            {expense.description || "Spesa"}
+          </p>
           <p className="text-xs text-muted-foreground">
             {getSplitLabel(expense.split_type)} •{" "}
             {new Date(expense.expense_date).toLocaleDateString("it-IT")}
@@ -228,6 +233,7 @@ export function WalletDashboard() {
 
   // Filter out settlements for Stats/Totals (but keep for Balance)
   const isSettlement = (e: Expense) => e.description?.startsWith('💸');
+  const isGift = (e: Expense) => e.is_gift === true;
   const realExpenses = expenses.filter(e => !isSettlement(e));
 
   const totalSpent = realExpenses.reduce((sum, exp) => sum + exp.amount_in_eur, 0);
@@ -259,6 +265,9 @@ export function WalletDashboard() {
 
   // 2. Add Expenses Logic
   expenses.forEach(e => {
+    // Skip gift expenses for balance calculation
+    if (isGift(e)) return;
+
     const amount = e.amount_in_eur;
 
     // Who Paid?

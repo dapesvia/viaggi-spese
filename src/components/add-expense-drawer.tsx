@@ -87,6 +87,7 @@ export function AddExpenseDrawer({ open, onOpenChange, onExpenseAdded }: AddExpe
   const [manualTina, setManualTina] = useState("");
   const [description, setDescription] = useState("");
   const [expenseDate, setExpenseDate] = useState(getInitialDate()); // Fallback initial state
+  const [isGift, setIsGift] = useState(false);
 
   // Sync expenseDate with calculated date
   useEffect(() => {
@@ -130,7 +131,8 @@ export function AddExpenseDrawer({ open, onOpenChange, onExpenseAdded }: AddExpe
         split_type: splitType,
         expense_date: expenseDate,
         trip_id: currentTrip.id,
-        receipt_url: receiptImage
+        receipt_url: receiptImage,
+        is_gift: isGift
       };
 
       if (splitType === 'custom') {
@@ -174,6 +176,7 @@ export function AddExpenseDrawer({ open, onOpenChange, onExpenseAdded }: AddExpe
     setManualAlex("");
     setManualTina("");
     setDescription("");
+    setIsGift(false);
     // Reset date to smart default
     if (currentTrip) {
       const now = new Date();
@@ -268,6 +271,32 @@ export function AddExpenseDrawer({ open, onOpenChange, onExpenseAdded }: AddExpe
                 <button onClick={() => setPayer('alex')} className={cn("flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-all", payer === 'alex' ? "bg-background text-primary shadow" : "text-muted-foreground")}>👤 Alex</button>
                 <button onClick={() => setPayer('tina')} className={cn("flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-all", payer === 'tina' ? "bg-background text-primary shadow" : "text-muted-foreground")}>👩 Tina</button>
               </div>
+            </div>
+
+            {/* Gift Toggle */}
+            <div className="mb-4 p-4 bg-purple-500/5 border border-purple-500/20 rounded-xl">
+              <div className="flex items-center justify-between mb-2">
+                <label className="text-sm font-medium flex items-center gap-2">
+                  🎁 È un regalo?
+                </label>
+                <button
+                  onClick={() => setIsGift(!isGift)}
+                  className={cn(
+                    "relative w-14 h-7 rounded-full transition-all",
+                    isGift ? "bg-purple-500" : "bg-muted"
+                  )}
+                >
+                  <div className={cn(
+                    "absolute top-0.5 w-6 h-6 bg-white rounded-full shadow transition-all",
+                    isGift ? "right-0.5" : "left-0.5"
+                  )} />
+                </button>
+              </div>
+              {isGift && (
+                <p className="text-xs text-muted-foreground animate-in fade-in slide-in-from-top-2">
+                  💡 Questa spesa non verrà contata nel bilancio
+                </p>
+              )}
             </div>
 
             {/* Split Type */}

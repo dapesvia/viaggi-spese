@@ -27,7 +27,8 @@ export function SettleDebtDrawer({ open, onOpenChange, balance, onSettled }: Set
     // Initialize amount when drawer opens
     useEffect(() => {
         if (open) {
-            setCustomAmount(Math.abs(balance).toFixed(2));
+            // Don't pre-fill with balance - let user explicitly choose amount
+            setCustomAmount("");
         } else {
             setCustomAmount("");
             setConfirmStep(false);
@@ -131,7 +132,7 @@ export function SettleDebtDrawer({ open, onOpenChange, balance, onSettled }: Set
                                         onClick={() => setCustomAmount(Math.abs(balance).toFixed(2))}
                                         className="text-xs text-green-600/70 mt-2 hover:underline"
                                     >
-                                        Totale: €{Math.abs(balance).toFixed(2)}
+                                        Salda tutto (€{Math.abs(balance).toFixed(2)})
                                     </button>
                                 </div>
 

@@ -213,6 +213,9 @@ export function CreateTripDrawer({ open, onOpenChange, tripToEdit }: CreateTripD
                                     placeholder="Ritorno"
                                 />
                             </div>
+                            <p className="text-xs text-muted-foreground -mt-2 ml-1">
+                                💡 Puoi selezionare lo stesso giorno per viaggi giornalieri
+                            </p>
 
                             {/* Destinazione / Indirizzo */}
                             <div>

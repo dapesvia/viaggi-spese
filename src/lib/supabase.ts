@@ -115,6 +115,7 @@ export type Expense = {
   split_manual_tina?: number; // New field
   receipt_url: string | null;
   expense_date: string;
+  is_gift?: boolean; // Gift expenses don't affect balance
   created_at: string;
   updated_at: string;
 };
