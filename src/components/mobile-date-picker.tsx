@@ -87,8 +87,19 @@ export function MobileDatePicker({
 
 
     const isDateDisabled = (date: Date) => {
-        if (minDateObj && date < minDateObj) return true;
-        if (maxDateObj && date > maxDateObj) return true;
+        // Normalize dates to midnight for proper comparison (ignore time)
+        const dateOnly = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+
+        if (minDateObj) {
+            const minOnly = new Date(minDateObj.getFullYear(), minDateObj.getMonth(), minDateObj.getDate());
+            if (dateOnly < minOnly) return true;
+        }
+
+        if (maxDateObj) {
+            const maxOnly = new Date(maxDateObj.getFullYear(), maxDateObj.getMonth(), maxDateObj.getDate());
+            if (dateOnly > maxOnly) return true;
+        }
+
         return false;
     };
 
