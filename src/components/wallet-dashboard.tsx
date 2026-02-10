@@ -246,22 +246,24 @@ export function WalletDashboard() {
   let alexConsumed = 0;
   let tinaConsumed = 0;
 
-  // 1. Add Initial Trip Cost Logic
-  const tripCostPerPerson = tripCost / 2;
+  // 1. Add Initial Trip Cost Logic (skip if trip is a gift)
+  if (!currentTrip.is_gift) {
+    const tripCostPerPerson = tripCost / 2;
 
-  if (tripPayer === 'alex') {
-    alexPaid += tripCost;
-  } else if (tripPayer === 'tina') {
-    // alexPaid doesn't increase
-  } else if (tripPayer === 'split') {
-    alexPaid += tripCostPerPerson;
-  } else if (tripPayer === 'custom') {
-    alexPaid += (currentTrip.cost_split_manual_alex || 0);
+    if (tripPayer === 'alex') {
+      alexPaid += tripCost;
+    } else if (tripPayer === 'tina') {
+      // alexPaid doesn't increase
+    } else if (tripPayer === 'split') {
+      alexPaid += tripCostPerPerson;
+    } else if (tripPayer === 'custom') {
+      alexPaid += (currentTrip.cost_split_manual_alex || 0);
+    }
+
+    // Both consume half the trip cost
+    alexConsumed += tripCostPerPerson;
+    tinaConsumed += tripCostPerPerson;
   }
-
-  // Both consume half the trip cost
-  alexConsumed += tripCostPerPerson;
-  tinaConsumed += tripCostPerPerson;
 
   // 2. Add Expenses Logic
   expenses.forEach(e => {
@@ -291,9 +293,12 @@ export function WalletDashboard() {
   let alexRealConsumed = 0;
   let tinaRealConsumed = 0;
 
-  // Add initial trip split to real consumed
-  alexRealConsumed += tripCostPerPerson;
-  tinaRealConsumed += tripCostPerPerson;
+  // Add initial trip split to real consumed (skip if gift)
+  if (!currentTrip.is_gift) {
+    const tripCostPerPersonDisplay = (currentTrip.budget || 0) / 2;
+    alexRealConsumed += tripCostPerPersonDisplay;
+    tinaRealConsumed += tripCostPerPersonDisplay;
+  }
 
   realExpenses.forEach(e => {
     const amount = e.amount_in_eur;

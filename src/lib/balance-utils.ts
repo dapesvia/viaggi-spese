@@ -5,8 +5,10 @@ export function calculateGlobalBalance(trips: Trip[], expenses: Expense[]): numb
     let globalAlexPaid = 0;
     let globalAlexConsumed = 0;
 
-    // 1. Trips Costs
+    // 1. Trips Costs (skip gift trips)
     trips.forEach(trip => {
+        if (trip.is_gift) return; // Gift trips don't affect balance
+
         const tripCost = trip.budget || 0;
         const tripPayer = trip.cost_payer || 'split';
         const tripCostPerPerson = tripCost / 2;
@@ -22,8 +24,10 @@ export function calculateGlobalBalance(trips: Trip[], expenses: Expense[]): numb
         globalAlexConsumed += tripCostPerPerson;
     });
 
-    // 2. Expenses
+    // 2. Expenses (skip gift expenses and settlements)
     expenses.forEach(e => {
+        if (e.is_gift) return; // Gift expenses don't affect balance
+
         const amount = e.amount_in_eur;
         const payer = e.payer || (e.split_type === 'partner' ? 'tina' : 'alex');
 

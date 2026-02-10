@@ -47,6 +47,7 @@ export function CreateTripDrawer({ open, onOpenChange, tripToEdit }: CreateTripD
     const [destinationAddress, setDestinationAddress] = useState("");
     const [accommodationName, setAccommodationName] = useState("");
     const [accommodationType, setAccommodationType] = useState("");
+    const [isGift, setIsGift] = useState(false);
 
     // Populate form when tripToEdit changes
     useEffect(() => {
@@ -63,6 +64,7 @@ export function CreateTripDrawer({ open, onOpenChange, tripToEdit }: CreateTripD
             setDestinationAddress(tripToEdit.destination_address || "");
             setAccommodationName(tripToEdit.accommodation_name || "");
             setAccommodationType(tripToEdit.accommodation_type || "");
+            setIsGift(tripToEdit.is_gift || false);
         } else {
             resetForm();
         }
@@ -81,6 +83,7 @@ export function CreateTripDrawer({ open, onOpenChange, tripToEdit }: CreateTripD
         setDestinationAddress("");
         setAccommodationName("");
         setAccommodationType("");
+        setIsGift(false);
     };
 
     const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -138,6 +141,7 @@ export function CreateTripDrawer({ open, onOpenChange, tripToEdit }: CreateTripD
                 destination_address: destinationAddress || null,
                 accommodation_name: accommodationName || null,
                 accommodation_type: accommodationType || null,
+                is_gift: isGift,
                 status: (new Date(startDate) <= new Date() ? "active" : "upcoming") as "active" | "upcoming"
             };
 
@@ -380,6 +384,32 @@ export function CreateTripDrawer({ open, onOpenChange, tripToEdit }: CreateTripD
                                     {costPayer === 'tina' && 'Pagato interamente da Tina'}
                                     {costPayer === 'custom' && 'Importi specifici pagati da ciascuno'}
                                 </p>
+                            </div>
+
+                            {/* Gift Toggle */}
+                            <div className="p-4 bg-purple-500/5 border border-purple-500/20 rounded-xl">
+                                <div className="flex items-center justify-between mb-2">
+                                    <label className="text-sm font-medium flex items-center gap-2">
+                                        🎁 È un regalo?
+                                    </label>
+                                    <button
+                                        onClick={() => setIsGift(!isGift)}
+                                        className={cn(
+                                            "relative w-14 h-7 rounded-full transition-all",
+                                            isGift ? "bg-purple-500" : "bg-muted"
+                                        )}
+                                    >
+                                        <div className={cn(
+                                            "absolute top-0.5 w-6 h-6 bg-white rounded-full shadow transition-all",
+                                            isGift ? "right-0.5" : "left-0.5"
+                                        )} />
+                                    </button>
+                                </div>
+                                {isGift && (
+                                    <p className="text-xs text-muted-foreground animate-in fade-in slide-in-from-top-2">
+                                        💡 Il costo di questo viaggio non verrà contato nel bilancio
+                                    </p>
+                                )}
                             </div>
 
                             {/* Cover Image Upload */}

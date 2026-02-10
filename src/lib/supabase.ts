@@ -87,6 +87,7 @@ export type Trip = {
   destination_address: string | null;
   accommodation_name: string | null;
   accommodation_type: string | null;
+  is_gift?: boolean;
   created_by: string;
   created_at: string;
   updated_at: string;
