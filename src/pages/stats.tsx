@@ -46,14 +46,17 @@ interface StatsCalendarProps {
     expenseDateAmounts: Map<string, number>;  // YYYY-MM-DD -> total expense amount
     tripDateAmounts: Map<string, number>;     // YYYY-MM-DD -> trip cost allocated
     totalAllTime: number;
+    expenses?: Expense[];                     // Raw expenses for person filtering
+    giftDateSet?: Set<string>;               // YYYY-MM-DD dates that have gift expenses
 }
 
-function StatsCalendar({ open, onClose, tripDates, expenseDateAmounts, tripDateAmounts, totalAllTime }: StatsCalendarProps) {
+function StatsCalendar({ open, onClose, tripDates, expenseDateAmounts, tripDateAmounts, totalAllTime, expenses, giftDateSet }: StatsCalendarProps) {
     const [viewDate, setViewDate] = useState(() => new Date());
     const [selectionMode, setSelectionMode] = useState<"single" | "range">("single");
     const [selectedDate, setSelectedDate] = useState<Date | null>(null);
     const [rangeStart, setRangeStart] = useState<Date | null>(null);
     const [rangeEnd, setRangeEnd] = useState<Date | null>(null);
+    const [personFilter, setPersonFilter] = useState<"all" | "alex" | "tina">("all");
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -79,6 +82,26 @@ function StatsCalendar({ open, onClose, tripDates, expenseDateAmounts, tripDateA
     };
 
     const hasTrip = (d: Date) => tripDates.has(fmtKey(d));
+    const hasGift = (d: Date) => giftDateSet?.has(fmtKey(d)) ?? false;
+
+    // Recompute expense amounts by person filter
+    const filteredExpenseDateAmounts = useMemo(() => {
+        if (personFilter === "all" || !expenses) return expenseDateAmounts;
+        const map = new Map<string, number>();
+        expenses.forEach(e => {
+            if (e.payer === personFilter) {
+                const key = e.expense_date;
+                map.set(key, (map.get(key) || 0) + e.amount);
+            }
+        });
+        return map;
+    }, [personFilter, expenses, expenseDateAmounts]);
+
+    // Filtered total for person
+    const filteredPersonTotal = useMemo(() => {
+        if (personFilter === "all" || !expenses) return totalAllTime;
+        return expenses.filter(e => e.payer === personFilter).reduce((sum, e) => sum + e.amount, 0);
+    }, [personFilter, expenses, totalAllTime]);
 
     const isInRange = (d: Date) => {
         if (selectionMode === "single") return selectedDate && d.toDateString() === selectedDate.toDateString();
@@ -119,22 +142,23 @@ function StatsCalendar({ open, onClose, tripDates, expenseDateAmounts, tripDateA
         if (selectionMode === "range" && !rangeStart) return null;
 
         let total = 0;
+        const useTrips = personFilter === "all"; // trip costs only when viewing "all"
 
         if (selectionMode === "single" && selectedDate) {
             const key = fmtKey(selectedDate);
-            total += (expenseDateAmounts.get(key) || 0) + (tripDateAmounts.get(key) || 0);
+            total += (filteredExpenseDateAmounts.get(key) || 0) + (useTrips ? (tripDateAmounts.get(key) || 0) : 0);
         } else if (selectionMode === "range" && rangeStart) {
             const end = rangeEnd || rangeStart;
             const current = new Date(rangeStart);
             while (current <= end) {
                 const key = fmtKey(current);
-                total += (expenseDateAmounts.get(key) || 0) + (tripDateAmounts.get(key) || 0);
+                total += (filteredExpenseDateAmounts.get(key) || 0) + (useTrips ? (tripDateAmounts.get(key) || 0) : 0);
                 current.setDate(current.getDate() + 1);
             }
         }
 
         return total;
-    }, [selectedDate, rangeStart, rangeEnd, selectionMode, expenseDateAmounts, tripDateAmounts]);
+    }, [selectedDate, rangeStart, rangeEnd, selectionMode, filteredExpenseDateAmounts, tripDateAmounts, personFilter]);
 
     const clearSelection = () => {
         setSelectedDate(null);
@@ -168,7 +192,7 @@ function StatsCalendar({ open, onClose, tripDates, expenseDateAmounts, tripDateA
                     exit={{ y: "100%" }}
                     transition={{ type: "spring", damping: 25, stiffness: 300 }}
                     onClick={(e) => e.stopPropagation()}
-                    className="w-full max-w-md bg-background rounded-t-3xl sm:rounded-3xl overflow-hidden"
+                    className="w-full max-w-md bg-background rounded-t-3xl sm:rounded-3xl overflow-hidden max-h-[95vh] overflow-y-auto"
                 >
                     {/* Header */}
                     <div className="flex items-center justify-between p-4 border-b border-border">
@@ -176,14 +200,60 @@ function StatsCalendar({ open, onClose, tripDates, expenseDateAmounts, tripDateA
                             <X className="w-5 h-5" />
                         </button>
                         <div className="text-center">
-                            <h3 className="text-lg font-bold">📊 Calendario Spese</h3>
-                            <p className="text-xs text-muted-foreground">Totale storico: €{totalAllTime.toFixed(0)}</p>
+                            <h3 className="text-lg font-bold">
+                                {personFilter === "all" ? "📊" : personFilter === "alex" ? "👦🏻" : "👩🏻"} Calendario Spese
+                            </h3>
+                            <p className="text-xs text-muted-foreground">
+                                {personFilter === "all"
+                                    ? `Totale storico: \u20AC${filteredPersonTotal.toFixed(0)}`
+                                    : `${personFilter === "alex" ? "Alex" : "Tina"}: \u20AC${filteredPersonTotal.toFixed(0)}`
+                                }
+                            </p>
                         </div>
                         <div className="w-9" />
                     </div>
 
+                    {/* Person Filter Buttons */}
+                    {expenses && expenses.length > 0 && (
+                        <div className="flex gap-2 px-4 pt-3">
+                            <button
+                                onClick={() => setPersonFilter("all")}
+                                className={cn(
+                                    "flex-1 py-2 px-2 rounded-xl text-xs font-semibold transition-all flex items-center justify-center gap-1.5",
+                                    personFilter === "all"
+                                        ? "bg-primary text-primary-foreground shadow-lg shadow-primary/30"
+                                        : "bg-muted text-muted-foreground hover:bg-muted/80"
+                                )}
+                            >
+                                👥 Tutti
+                            </button>
+                            <button
+                                onClick={() => setPersonFilter("alex")}
+                                className={cn(
+                                    "flex-1 py-2 px-2 rounded-xl text-xs font-semibold transition-all flex items-center justify-center gap-1.5",
+                                    personFilter === "alex"
+                                        ? "bg-blue-500 text-white shadow-lg shadow-blue-500/30"
+                                        : "bg-muted text-muted-foreground hover:bg-muted/80"
+                                )}
+                            >
+                                👦🏻 Alex
+                            </button>
+                            <button
+                                onClick={() => setPersonFilter("tina")}
+                                className={cn(
+                                    "flex-1 py-2 px-2 rounded-xl text-xs font-semibold transition-all flex items-center justify-center gap-1.5",
+                                    personFilter === "tina"
+                                        ? "bg-pink-500 text-white shadow-lg shadow-pink-500/30"
+                                        : "bg-muted text-muted-foreground hover:bg-muted/80"
+                                )}
+                            >
+                                👩🏻 Tina
+                            </button>
+                        </div>
+                    )}
+
                     {/* Mode Toggle */}
-                    <div className="flex gap-2 px-4 pt-4">
+                    <div className="flex gap-2 px-4 pt-3">
                         <button
                             onClick={() => { setSelectionMode("single"); clearSelection(); }}
                             className={cn(
@@ -252,7 +322,9 @@ function StatsCalendar({ open, onClose, tripDates, expenseDateAmounts, tripDateA
                                             isRangeStart(date) && selectionMode === "range" && "rounded-r-none",
                                             isRangeEnd(date) && selectionMode === "range" && "rounded-l-none",
                                             date.toDateString() === today.toDateString() && !isInRange(date) && "border-2 border-primary/50 text-primary",
-                                            !isInRange(date) && date.toDateString() !== today.toDateString() && "hover:bg-muted active:bg-muted"
+                                            // Gift day highlight
+                                            hasGift(date) && !isInRange(date) && date.toDateString() !== today.toDateString() && "bg-pink-500/15 text-pink-400 border border-pink-500/30",
+                                            !isInRange(date) && !hasGift(date) && date.toDateString() !== today.toDateString() && "hover:bg-muted active:bg-muted"
                                         )}
                                     >
                                         {date.getDate()}
@@ -263,6 +335,13 @@ function StatsCalendar({ open, onClose, tripDates, expenseDateAmounts, tripDateA
                                                 isInRange(date) ? "bg-white/80" : "bg-primary"
                                             )} />
                                         )}
+                                        {/* Gift dot indicator */}
+                                        {hasGift(date) && !hasTrip(date) && (
+                                            <span className={cn(
+                                                "absolute bottom-1 w-1.5 h-1.5 rounded-full",
+                                                isInRange(date) ? "bg-pink-300" : "bg-pink-500"
+                                            )} />
+                                        )}
                                     </motion.button>
                                 )}
                             </div>
@@ -270,15 +349,21 @@ function StatsCalendar({ open, onClose, tripDates, expenseDateAmounts, tripDateA
                     </div>
 
                     {/* Legend */}
-                    <div className="flex items-center gap-4 px-4 pb-2 justify-center">
+                    <div className="flex items-center gap-4 px-4 pb-2 justify-center flex-wrap">
                         <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                             <span className="w-2 h-2 rounded-full bg-primary" />
-                            Giorno di viaggio
+                            Viaggio
                         </div>
                         <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                             <span className="w-2 h-2 rounded-full border-2 border-primary/50" />
                             Oggi
                         </div>
+                        {giftDateSet && giftDateSet.size > 0 && (
+                            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                                <span className="w-2 h-2 rounded-full bg-pink-500" />
+                                Regalo 🎁
+                            </div>
+                        )}
                     </div>
 
                     {/* Filtered Total Result */}
@@ -299,8 +384,13 @@ function StatsCalendar({ open, onClose, tripDates, expenseDateAmounts, tripDateA
                                                     ? `Dal ${rangeStart?.toLocaleDateString("it-IT", { day: "numeric", month: "short" })} al ${rangeEnd?.toLocaleDateString("it-IT", { day: "numeric", month: "short", year: "numeric" })}`
                                                     : `Dal ${rangeStart?.toLocaleDateString("it-IT", { day: "numeric", month: "short", year: "numeric" })}`
                                             }
+                                            {personFilter !== "all" && (
+                                                <span className="ml-1 font-semibold">
+                                                    ({personFilter === "alex" ? "👦🏻 Alex" : "👩🏻 Tina"})
+                                                </span>
+                                            )}
                                         </p>
-                                        <p className="text-2xl font-black text-green-500">€{filteredTotal.toFixed(2)}</p>
+                                        <p className="text-2xl font-black text-green-500">{"\u20AC"}{filteredTotal.toFixed(2)}</p>
                                     </div>
                                     <button
                                         onClick={clearSelection}
@@ -460,6 +550,14 @@ export default function StatsPage() {
         });
         return map;
     }, [giftExpenses]);
+
+    // Build set of dates that have gift expenses (for calendar highlighting)
+    const giftDateSet = useMemo(() => {
+        const set = new Set<string>();
+        giftExpenses.forEach(e => set.add(e.expense_date));
+        trips.filter(t => t.is_gift).forEach(t => set.add(t.start_date));
+        return set;
+    }, [giftExpenses, trips]);
 
     // Stats per categoria (viaggio corrente) - EXCLUDE SETTLEMENTS
     const categoryData = Object.entries(
@@ -902,6 +1000,8 @@ export default function StatsPage() {
                 expenseDateAmounts={expenseDateAmounts}
                 tripDateAmounts={tripDateAmounts}
                 totalAllTime={totalAllTime}
+                expenses={realAllExpenses}
+                giftDateSet={giftDateSet}
             />
 
             {/* Calendar Overlay - Regali */}
@@ -912,6 +1012,7 @@ export default function StatsPage() {
                 expenseDateAmounts={giftDateAmounts}
                 tripDateAmounts={new Map()}
                 totalAllTime={totalGifts}
+                expenses={giftExpenses}
             />
         </div>
     );
