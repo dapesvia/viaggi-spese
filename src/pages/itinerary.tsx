@@ -171,12 +171,11 @@ export default function ItineraryPage() {
       return `https://www.google.com/maps/dir/?api=1&destination=${formatPoint(stops[0])}`;
     }
 
-    // Google Maps: origin + destination + waypoints
-    const origin = formatPoint(stops[0]);
+    // Google Maps: destination + waypoints (origin defaults to current location)
     const destination = formatPoint(stops[stops.length - 1]);
-    const waypoints = stops.slice(1, -1).map(s => formatPoint(s)).join('|');
+    const waypoints = stops.slice(0, -1).map(s => formatPoint(s)).join('|');
 
-    let url = `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}`;
+    let url = `https://www.google.com/maps/dir/?api=1&destination=${destination}`;
     if (waypoints) url += `&waypoints=${waypoints}`;
     return url;
   };
@@ -193,9 +192,9 @@ export default function ItineraryPage() {
       return `https://maps.apple.com/?daddr=${formatPoint(stops[0])}`;
     }
 
-    const saddr = formatPoint(stops[0]);
-    const daddrs = stops.slice(1).map(s => formatPoint(s)).join('+to:');
-    return `https://maps.apple.com/?saddr=${saddr}&daddr=${daddrs}`;
+    // Apple Maps: daddr (multiple stops) (saddr defaults to current location)
+    const daddrs = stops.map(s => formatPoint(s)).join('+to:');
+    return `https://maps.apple.com/?daddr=${daddrs}`;
   };
 
   const buildWazeRouteUrl = (stops: { lat?: number; lng?: number; name: string }[]) => {
