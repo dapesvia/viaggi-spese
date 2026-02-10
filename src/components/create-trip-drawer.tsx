@@ -9,6 +9,7 @@ import { compressImage } from "@/lib/image-utils";
 import { useToast } from "@/components/toast";
 import { MobileDatePicker } from "./mobile-date-picker";
 import { MobileMoneyInput } from "./mobile-money-input";
+import { LocationAutocomplete } from "./location-autocomplete";
 
 interface CreateTripDrawerProps {
     open: boolean;
@@ -223,16 +224,11 @@ export function CreateTripDrawer({ open, onOpenChange, tripToEdit }: CreateTripD
 
                             {/* Destinazione / Indirizzo */}
                             <div>
-                                <label className="text-sm font-medium text-muted-foreground mb-2 block">
-                                    <MapPin className="w-4 h-4 inline mr-1" />
-                                    Indirizzo / Località
-                                </label>
-                                <input
-                                    type="text"
+                                <LocationAutocomplete
                                     value={destinationAddress}
-                                    onChange={(e) => setDestinationAddress(e.target.value)}
-                                    placeholder="Es: Via Roma 15, Parma oppure Skofije, Slovenia"
-                                    className="w-full p-4 rounded-xl border-2 border-border bg-background focus:border-primary focus:outline-none transition-colors text-base"
+                                    onChange={(name) => setDestinationAddress(name)}
+                                    label="Indirizzo / Località"
+                                    placeholder="Cerca un indirizzo o luogo..."
                                 />
                                 <p className="text-xs text-muted-foreground mt-1">
                                     L'indirizzo o la zona dove sei stato

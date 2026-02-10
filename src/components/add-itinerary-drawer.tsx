@@ -1,11 +1,12 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { X, Clock, MapPin, FileText, Tag } from "lucide-react";
+import { X, Clock, FileText, Tag } from "lucide-react";
 import { Drawer } from "vaul";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/lib/supabase";
 import { useTrip } from "@/lib/trip-context";
 import { useToast } from "@/components/toast";
+import { LocationAutocomplete } from "@/components/location-autocomplete";
 
 const ITEM_TYPES = [
     { id: "flight", label: "Volo", emoji: "✈️" },
@@ -31,6 +32,8 @@ export function AddItineraryDrawer({ open, onOpenChange, onSaved, defaultDate }:
     const [description, setDescription] = useState("");
     const [datetime, setDatetime] = useState("");
     const [locationName, setLocationName] = useState("");
+    const [locationLat, setLocationLat] = useState<number | null>(null);
+    const [locationLng, setLocationLng] = useState<number | null>(null);
     const [bookingRef, setBookingRef] = useState("");
     const [loading, setLoading] = useState(false);
 
@@ -53,6 +56,8 @@ export function AddItineraryDrawer({ open, onOpenChange, onSaved, defaultDate }:
                 description: description || null,
                 datetime,
                 location_name: locationName || null,
+                location_lat: locationLat,
+                location_lng: locationLng,
                 booking_reference: bookingRef || null
             });
 
@@ -67,6 +72,8 @@ export function AddItineraryDrawer({ open, onOpenChange, onSaved, defaultDate }:
             setDescription("");
             setDatetime("");
             setLocationName("");
+            setLocationLat(null);
+            setLocationLng(null);
             setBookingRef("");
         } catch (error) {
             console.error('Errore salvataggio:', error);
@@ -155,18 +162,17 @@ export function AddItineraryDrawer({ open, onOpenChange, onSaved, defaultDate }:
                             />
                         </div>
 
-                        {/* Location */}
+                        {/* Location with Autocomplete */}
                         <div className="mb-4">
-                            <label className="text-sm font-medium text-muted-foreground mb-2 block">
-                                <MapPin className="w-4 h-4 inline mr-1" />
-                                Luogo (opzionale)
-                            </label>
-                            <input
-                                type="text"
+                            <LocationAutocomplete
                                 value={locationName}
-                                onChange={(e) => setLocationName(e.target.value)}
-                                placeholder="Es: Aeroporto Fiumicino"
-                                className="w-full p-3 rounded-xl border-2 border-border bg-background focus:border-primary focus:outline-none transition-colors"
+                                onChange={(name, lat, lng) => {
+                                    setLocationName(name);
+                                    setLocationLat(lat);
+                                    setLocationLng(lng);
+                                }}
+                                label="Luogo (opzionale)"
+                                placeholder="Cerca un luogo..."
                             />
                         </div>
 

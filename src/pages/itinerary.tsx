@@ -413,10 +413,58 @@ export default function ItineraryPage() {
                                   {formatTime(item.datetime)}
                                 </span>
                                 {item.location_name && (
-                                  <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-background/50 text-muted-foreground">
-                                    <MapPin className="w-3 h-3" />
-                                    {item.location_name}
-                                  </span>
+                                  <div className="flex flex-wrap items-center gap-1.5">
+                                    <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-background/50 text-muted-foreground">
+                                      <MapPin className="w-3 h-3" />
+                                      {item.location_name}
+                                    </span>
+                                    {/* Navigation Buttons */}
+                                    {(item.location_lat && item.location_lng) ? (
+                                      <>
+                                        <a
+                                          href={`https://www.google.com/maps/dir/?api=1&destination=${item.location_lat},${item.location_lng}`}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          onClick={(e) => e.stopPropagation()}
+                                          className="inline-flex items-center gap-1 text-[10px] px-2 py-1 rounded-full bg-blue-500/15 text-blue-400 hover:bg-blue-500/25 transition-colors font-medium"
+                                          title="Apri in Google Maps"
+                                        >
+                                          🗺️ Maps
+                                        </a>
+                                        <a
+                                          href={`https://waze.com/ul?ll=${item.location_lat},${item.location_lng}&navigate=yes`}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          onClick={(e) => e.stopPropagation()}
+                                          className="inline-flex items-center gap-1 text-[10px] px-2 py-1 rounded-full bg-cyan-500/15 text-cyan-400 hover:bg-cyan-500/25 transition-colors font-medium"
+                                          title="Apri in Waze"
+                                        >
+                                          🚗 Waze
+                                        </a>
+                                        <a
+                                          href={`https://maps.apple.com/?daddr=${item.location_lat},${item.location_lng}`}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          onClick={(e) => e.stopPropagation()}
+                                          className="inline-flex items-center gap-1 text-[10px] px-2 py-1 rounded-full bg-green-500/15 text-green-400 hover:bg-green-500/25 transition-colors font-medium"
+                                          title="Apri in Apple Maps"
+                                        >
+                                          🍎 Apple
+                                        </a>
+                                      </>
+                                    ) : item.location_name && (
+                                      <a
+                                        href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(item.location_name)}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        onClick={(e) => e.stopPropagation()}
+                                        className="inline-flex items-center gap-1 text-[10px] px-2 py-1 rounded-full bg-blue-500/15 text-blue-400 hover:bg-blue-500/25 transition-colors font-medium"
+                                        title="Cerca in Google Maps"
+                                      >
+                                        🗺️ Naviga
+                                      </a>
+                                    )}
+                                  </div>
                                 )}
                                 {item.booking_reference && (
                                   <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-background/50 text-muted-foreground">
