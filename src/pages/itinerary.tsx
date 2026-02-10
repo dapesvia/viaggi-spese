@@ -148,45 +148,62 @@ export default function ItineraryPage() {
   }, [items]);
 
   // Build multi-stop route URLs
-  const buildGoogleMapsRouteUrl = (stops: { lat: number; lng: number; name: string }[]) => {
+  const buildGoogleMapsRouteUrl = (stops: { lat?: number; lng?: number; name: string }[]) => {
     if (stops.length === 0) return null;
+
+    const formatPoint = (s: { lat?: number; lng?: number; name: string }) => {
+      if (s.lat && s.lng) return `${s.lat},${s.lng}`;
+      return encodeURIComponent(s.name);
+    };
+
     if (stops.length === 1) {
-      return `https://www.google.com/maps/dir/?api=1&destination=${stops[0].lat},${stops[0].lng}`;
+      return `https://www.google.com/maps/dir/?api=1&destination=${formatPoint(stops[0])}`;
     }
+
     // Google Maps: origin + destination + waypoints
-    const origin = `${stops[0].lat},${stops[0].lng}`;
-    const destination = `${stops[stops.length - 1].lat},${stops[stops.length - 1].lng}`;
-    const waypoints = stops.slice(1, -1).map(s => `${s.lat},${s.lng}`).join('|');
+    const origin = formatPoint(stops[0]);
+    const destination = formatPoint(stops[stops.length - 1]);
+    const waypoints = stops.slice(1, -1).map(s => formatPoint(s)).join('|');
+
     let url = `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}`;
     if (waypoints) url += `&waypoints=${waypoints}`;
     return url;
   };
 
-  const buildAppleMapsRouteUrl = (stops: { lat: number; lng: number; name: string }[]) => {
+  const buildAppleMapsRouteUrl = (stops: { lat?: number; lng?: number; name: string }[]) => {
     if (stops.length === 0) return null;
+
+    const formatPoint = (s: { lat?: number; lng?: number; name: string }) => {
+      if (s.lat && s.lng) return `${s.lat},${s.lng}`;
+      return encodeURIComponent(s.name);
+    };
+
     if (stops.length === 1) {
-      return `https://maps.apple.com/?daddr=${stops[0].lat},${stops[0].lng}`;
+      return `https://maps.apple.com/?daddr=${formatPoint(stops[0])}`;
     }
-    // Apple Maps multi-stop: saddr for origin, daddr for stops separated by " to "
-    const saddr = `${stops[0].lat},${stops[0].lng}`;
-    const daddrs = stops.slice(1).map(s => `${s.lat},${s.lng}`).join('+to:');
+
+    const saddr = formatPoint(stops[0]);
+    const daddrs = stops.slice(1).map(s => formatPoint(s)).join('+to:');
     return `https://maps.apple.com/?saddr=${saddr}&daddr=${daddrs}`;
   };
 
-  const buildWazeRouteUrl = (stops: { lat: number; lng: number; name: string }[]) => {
-    // Waze only supports a single destination, so use the last stop
+  const buildWazeRouteUrl = (stops: { lat?: number; lng?: number; name: string }[]) => {
+    // Waze only supports a single destination
     if (stops.length === 0) return null;
     const dest = stops[stops.length - 1];
-    return `https://waze.com/ul?ll=${dest.lat},${dest.lng}&navigate=yes`;
+    if (dest.lat && dest.lng) {
+      return `https://waze.com/ul?ll=${dest.lat},${dest.lng}&navigate=yes`;
+    }
+    return `https://waze.com/ul?q=${encodeURIComponent(dest.name)}&navigate=yes`;
   };
 
   // Navigable stops for current day
   const dayNavigableStops = useMemo(() => {
     return dayItems
-      .filter(item => item.location_lat && item.location_lng)
+      .filter(item => (item.location_lat && item.location_lng) || item.location_name)
       .map(item => ({
-        lat: item.location_lat!,
-        lng: item.location_lng!,
+        lat: item.location_lat || undefined,
+        lng: item.location_lng || undefined,
         name: item.location_name || item.title,
       }));
   }, [dayItems]);
@@ -194,10 +211,10 @@ export default function ItineraryPage() {
   // Navigable stops for entire trip (all days, in order)
   const allNavigableStops = useMemo(() => {
     return items
-      .filter(item => item.location_lat && item.location_lng)
+      .filter(item => (item.location_lat && item.location_lng) || item.location_name)
       .map(item => ({
-        lat: item.location_lat!,
-        lng: item.location_lng!,
+        lat: item.location_lat || undefined,
+        lng: item.location_lng || undefined,
         name: item.location_name || item.title,
       }));
   }, [items]);

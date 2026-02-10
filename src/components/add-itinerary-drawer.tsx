@@ -7,6 +7,8 @@ import { supabase } from "@/lib/supabase";
 import { useTrip } from "@/lib/trip-context";
 import { useToast } from "@/components/toast";
 import { LocationAutocomplete } from "@/components/location-autocomplete";
+import { MobileDatePicker } from "@/components/mobile-date-picker";
+import { MobileTimePicker } from "@/components/mobile-time-picker";
 
 const ITEM_TYPES = [
     { id: "flight", label: "Volo", emoji: "✈️" },
@@ -30,7 +32,9 @@ export function AddItineraryDrawer({ open, onOpenChange, onSaved, defaultDate }:
     const [type, setType] = useState("activity");
     const [title, setTitle] = useState("");
     const [description, setDescription] = useState("");
-    const [datetime, setDatetime] = useState("");
+    // const [datetime, setDatetime] = useState(""); // Removed in favor of split state
+    const [date, setDate] = useState("");
+    const [time, setTime] = useState("");
     const [locationName, setLocationName] = useState("");
     const [locationLat, setLocationLat] = useState<number | null>(null);
     const [locationLng, setLocationLng] = useState<number | null>(null);
@@ -39,13 +43,16 @@ export function AddItineraryDrawer({ open, onOpenChange, onSaved, defaultDate }:
 
     // Pre-fill date when drawer opens with a defaultDate
     useEffect(() => {
-        if (open && defaultDate && !datetime) {
-            setDatetime(`${defaultDate}T09:00`);
+        if (open && defaultDate && !date) {
+            setDate(defaultDate);
+            setTime("09:00");
         }
     }, [open, defaultDate]);
 
     const handleSave = async () => {
-        if (!title || !datetime || !currentTrip) return;
+        if (!title || !date || !time || !currentTrip) return;
+
+        const datetime = `${date}T${time}`;
 
         setLoading(true);
         try {
@@ -70,7 +77,12 @@ export function AddItineraryDrawer({ open, onOpenChange, onSaved, defaultDate }:
             setType("activity");
             setTitle("");
             setDescription("");
-            setDatetime("");
+            // date and time persist or reset? Let's reset but keep date if provided? 
+            // Better to reset for next entry but maybe keep date? 
+            // User might add multiple for same day. Let's keep date, reset time?
+            // User requested standard behavior. Let's reset everything for now.
+            setDate("");
+            setTime("");
             setLocationName("");
             setLocationLat(null);
             setLocationLng(null);
@@ -148,18 +160,29 @@ export function AddItineraryDrawer({ open, onOpenChange, onSaved, defaultDate }:
                             />
                         </div>
 
-                        {/* DateTime */}
+                        {/* Date and Time Selection */}
                         <div className="mb-4">
                             <label className="text-sm font-medium text-muted-foreground mb-2 block">
                                 <Clock className="w-4 h-4 inline mr-1" />
                                 Data e Ora *
                             </label>
-                            <input
-                                type="datetime-local"
-                                value={datetime}
-                                onChange={(e) => setDatetime(e.target.value)}
-                                className="w-full p-3 rounded-xl border-2 border-border bg-background focus:border-primary focus:outline-none transition-colors"
-                            />
+                            <div className="flex gap-2">
+                                <div className="flex-1">
+                                    <MobileDatePicker
+                                        value={date}
+                                        onChange={setDate}
+                                        label="Data"
+                                        placeholder="Seleziona data"
+                                    />
+                                </div>
+                                <div className="w-1/3">
+                                    <MobileTimePicker
+                                        value={time}
+                                        onChange={setTime}
+                                        label="Ora"
+                                    />
+                                </div>
+                            </div>
                         </div>
 
                         {/* Location with Autocomplete */}
@@ -210,7 +233,7 @@ export function AddItineraryDrawer({ open, onOpenChange, onSaved, defaultDate }:
                         <motion.button
                             whileTap={{ scale: 0.98 }}
                             onClick={handleSave}
-                            disabled={!title || !datetime || loading}
+                            disabled={!title || !date || !time || loading}
                             className="w-full h-14 rounded-xl bg-gradient-to-r from-primary to-primary/80 text-primary-foreground font-semibold text-lg disabled:opacity-50 shadow-lg shadow-primary/30"
                         >
                             {loading ? "Salvataggio..." : "Salva"}
