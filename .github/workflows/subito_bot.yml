@@ -30,7 +30,7 @@ jobs:
       env:
         TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
         CHAT_ID: ${{ secrets.CHAT_ID }}
-        SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-        SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+        SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+        SUPABASE_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
         SEARCH_URLS: ${{ secrets.SEARCH_URLS }}
       run: python subito_monitor_bot.py
