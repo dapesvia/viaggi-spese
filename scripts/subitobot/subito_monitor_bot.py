@@ -113,26 +113,29 @@ class SubitoScraper:
         """Esegue il controllo su tutte le URL e restituisce i nuovi annunci"""
         all_ads = []
         async with async_playwright() as p:
-            # Lancia browser con opzioni anti-bot
-            browser = await p.chromium.launch(
+        async with async_playwright() as p:
+            # PROVIAMO FIREFOX: Spesso meno bloccato di Chrome Headless
+            browser = await p.firefox.launch(
                 headless=True,
                 args=[
-                    '--disable-blink-features=AutomationControlled',
-                    '--no-sandbox',
-                    '--disable-setuid-sandbox',
-                    '--disable-dev-shm-usage',
-                    '--disable-accelerated-2d-canvas',
-                    '--no-first-run',
-                    '--no-zygote',
-                    '--single-process',
-                    '--disable-gpu'
+                    # args firefox specifici se necessario
                 ]
             )
             context = await browser.new_context(
                 user_agent=random.choice(USER_AGENTS),
                 viewport={'width': 1920, 'height': 1080},
                 locale='it-IT',
-                timezone_id='Europe/Rome'
+                timezone_id='Europe/Rome',
+                extra_http_headers={
+                    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
+                    "Accept-Language": "it-IT,it;q=0.9,en-US;q=0.8,en;q=0.7",
+                    "Upgrade-Insecure-Requests": "1",
+                    "Sec-Fetch-Dest": "document",
+                    "Sec-Fetch-Mode": "navigate",
+                    "Sec-Fetch-Site": "none",
+                    "Sec-Fetch-User": "?1",
+                    "DNT": "1"
+                }
             )
             
             # Nascondi webdriver property
@@ -152,7 +155,7 @@ class SubitoScraper:
                     except Exception as nav_err:
                          logger.warning(f"Navigazione lenta o timeout: {nav_err}")
 
-                    await asyncio.sleep(random.uniform(3, 6)) # Attesa umana
+                    await asyncio.sleep(random.uniform(5, 10)) # Attesa umana aumentata
                     
                     logger.info(f"Page Title: {await page.title()}")
 
