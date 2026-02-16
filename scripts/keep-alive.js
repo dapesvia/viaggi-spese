@@ -1,4 +1,4 @@
-const { createClient } = require('@supabase/supabase-js');
+import { createClient } from '@supabase/supabase-js';
 
 // Change these to your project details or use environment variables
 // These are not sensitive as they are exposed in the frontend client anyway (Anon key)
