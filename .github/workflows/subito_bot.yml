@@ -1,0 +1,36 @@
+name: Subito Bot
+
+on:
+  schedule:
+    - cron: '*/30 * * * *'  # Esegue ogni 30 minuti
+  workflow_dispatch:      # Permette esecuzione manuale
+
+jobs:
+  check-ads:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+
+    - name: Install dependencies
+      working-directory: scripts/subitobot
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        playwright install chromium
+
+    - name: Run Subito Monitor
+      working-directory: scripts/subitobot
+      env:
+        TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+        CHAT_ID: ${{ secrets.CHAT_ID }}
+        SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+        SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+        SEARCH_URLS: ${{ secrets.SEARCH_URLS }}
+      run: python subito_monitor_bot.py
