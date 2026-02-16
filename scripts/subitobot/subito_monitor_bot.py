@@ -13,6 +13,7 @@ from typing import List, Dict, Optional
 import logging
 
 from playwright.async_api import async_playwright, Browser, Page
+from playwright_stealth import stealth_async
 from telegram import Bot
 from telegram.constants import ParseMode
 from supabase import create_client, Client
