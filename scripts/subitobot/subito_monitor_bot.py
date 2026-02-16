@@ -113,20 +113,46 @@ class SubitoScraper:
         """Esegue il controllo su tutte le URL e restituisce i nuovi annunci"""
         all_ads = []
         async with async_playwright() as p:
-            # Lancia browser (headless=True per GitHub Actions)
-            browser = await p.chromium.launch(headless=True)
+            # Lancia browser con opzioni anti-bot
+            browser = await p.chromium.launch(
+                headless=True,
+                args=[
+                    '--disable-blink-features=AutomationControlled',
+                    '--no-sandbox',
+                    '--disable-setuid-sandbox',
+                    '--disable-dev-shm-usage',
+                    '--disable-accelerated-2d-canvas',
+                    '--no-first-run',
+                    '--no-zygote',
+                    '--single-process',
+                    '--disable-gpu'
+                ]
+            )
             context = await browser.new_context(
                 user_agent=random.choice(USER_AGENTS),
-                viewport={'width': 1920, 'height': 1080}
+                viewport={'width': 1920, 'height': 1080},
+                locale='it-IT',
+                timezone_id='Europe/Rome'
             )
             
+            # Nascondi webdriver property
+            await context.add_init_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
+            
             page = await context.new_page()
+            
+            # Applica stealth mode
+            await stealth_async(page)
             
             for url in urls:
                 try:
                     logger.info(f"Scraping URL: {url}")
-                    await page.goto(url, wait_until='domcontentloaded', timeout=60000)
-                    await asyncio.sleep(2) # Breve attesa
+                    # Usa wait_until='networkidle' o 'commit' a volte aiuta
+                    try:
+                        await page.goto(url, wait_until='domcontentloaded', timeout=60000)
+                    except Exception as nav_err:
+                         logger.warning(f"Navigazione lenta o timeout: {nav_err}")
+
+                    await asyncio.sleep(random.uniform(3, 6)) # Attesa umana
                     
                     logger.info(f"Page Title: {await page.title()}")
 
