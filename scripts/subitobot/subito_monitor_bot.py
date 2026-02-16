@@ -113,7 +113,6 @@ class SubitoScraper:
         """Esegue il controllo su tutte le URL e restituisce i nuovi annunci"""
         all_ads = []
         async with async_playwright() as p:
-        async with async_playwright() as p:
             # PROVIAMO FIREFOX: Spesso meno bloccato di Chrome Headless
             browser = await p.firefox.launch(
                 headless=True,
