@@ -13,7 +13,7 @@ from typing import List, Dict, Optional
 import logging
 
 from playwright.async_api import async_playwright, Browser, Page
-from playwright_stealth import stealth_async
+# from playwright_stealth import stealth_async # Rimosso per incompatibilità
 from telegram import Bot
 from telegram.constants import ParseMode
 from supabase import create_client, Client
@@ -138,13 +138,22 @@ class SubitoScraper:
                 }
             )
             
-            # Nascondi webdriver property
-            await context.add_init_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
+            # Nascondi webdriver property e altri parametri bot
+            await context.add_init_script("""
+                Object.defineProperty(navigator, 'webdriver', {
+                    get: () => undefined
+                });
+                Object.defineProperty(navigator, 'languages', {
+                    get: () => ['it-IT', 'it', 'en-US', 'en']
+                });
+                Object.defineProperty(navigator, 'plugins', {
+                    get: () => [1, 2, 3, 4, 5]
+                });
+            """)
             
             page = await context.new_page()
             
-            # Applica stealth mode
-            await stealth_async(page)
+            # Stealth manuale rimosso (era await stealth_async(page))
             
             for url in urls:
                 try:
