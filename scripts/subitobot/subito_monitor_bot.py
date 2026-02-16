@@ -206,6 +206,23 @@ class SubitoScraper:
                             logger.info(f"Trovati {len(elements)} elementi con selettore: {sel}")
                             break
                     
+                    # FALLBACK ROBUSTO: Se i selettori CSS falliscono, cerca i LINK degli annunci
+                    if not ads_elements:
+                        logger.info("Nessun elemento trovato con i selettori standard. Tento fallback sui link...")
+                        # Cerca tutti i link che sembrano annunci
+                        links = await page.query_selector_all("a[href*='/vendita/'], a[href*='/annunci-italia/']")
+                        unique_ads = {}
+                        for link in links:
+                            href = await link.get_attribute("href")
+                            if href and any(x in href for x in ['.htm', '.html']) and not any(x in href for x in ['/vetrina/', '/company/']):
+                                # Usa l'URL come chiave per evitare duplicati
+                                unique_ads[href] = link
+                        
+                        if unique_ads:
+                            # Trovati link validi! Usiamo i genitori dei link come "ad_element" o il link stesso
+                            ads_elements = list(unique_ads.values())
+                            logger.info(f"FALLBACK SUCCESSO: Trovati {len(ads_elements)} annunci tramite link diretti.")
+                    
                     if not ads_elements:
                          logger.warning(f"NESSUN ANNUNCIO TROVATO SU {url}")
                          # DEBUG: Salva screenshot e HTML
@@ -219,10 +236,15 @@ class SubitoScraper:
 
                     logger.info(f"Trovati {len(ads_elements)} potenziali annunci su {url}")
                     
-                    for ad_elem in ads_elements[:10]: # Controlla i primi 10
+                    for ad_elem in ads_elements[:20]: # Controlla i primi 20
                         try:
-                            # Link
-                            link_el = await ad_elem.query_selector("a")
+                            # Determina se l'elemento è un link o un container
+                            tag_name = await ad_elem.evaluate("el => el.tagName")
+                            if tag_name == "A":
+                                link_el = ad_elem
+                            else:
+                                link_el = await ad_elem.query_selector("a")
+                            
                             if not link_el: continue
                             href = await link_el.get_attribute("href")
                             
@@ -230,7 +252,13 @@ class SubitoScraper:
                             ad_id = href.split('/')[-1].replace('.htm', '').replace('.html', '')
                             
                             # Titolo
-                            title = await ad_elem.inner_text()
+                            # Se è un container, cerca h2, altrimenti text content del link
+                            title_el = await ad_elem.query_selector("h2")
+                            if title_el:
+                                title = await title_el.inner_text()
+                            else:
+                                title = await ad_elem.inner_text()
+                            
                             title = title.split('\n')[0] # Prendi la prima riga come titolo approssimativo
                             
                             # Prezzo (cerchiamo € nel testo)
