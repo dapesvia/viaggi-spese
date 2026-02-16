@@ -206,15 +206,21 @@ class SubitoScraper:
                             logger.info(f"Trovati {len(elements)} elementi con selettore: {sel}")
                             break
                     
-                    # FALLBACK ROBUSTO: Se i selettori CSS falliscono, cerca i LINK degli annunci
                     if not ads_elements:
                         logger.info("Nessun elemento trovato con i selettori standard. Tento fallback sui link...")
-                        # Cerca tutti i link che sembrano annunci
-                        links = await page.query_selector_all("a[href*='/vendita/'], a[href*='/annunci-italia/']")
+                        # Cerca tutti i link che sembrano annunci (più ampio: .htm o /auto/)
+                        links = await page.query_selector_all("a[href*='.htm'], a[href*='/auto/']")
+                        
+                        # DEBUG: Stampa i primi 5 link trovati per capire cosa vede il bot
+                        debug_links_count = 0
+                        for l in links[:5]:
+                            h = await l.get_attribute("href")
+                            logger.info(f"DEBUG LINK TROVATO: {h}")
+
                         unique_ads = {}
                         for link in links:
                             href = await link.get_attribute("href")
-                            if href and any(x in href for x in ['.htm', '.html']) and not any(x in href for x in ['/vetrina/', '/company/']):
+                            if href and ('.htm' in href or '/auto/' in href) and not any(x in href for x in ['/vetrina/', '/company/', '/crea-account', '/login']):
                                 # Usa l'URL come chiave per evitare duplicati
                                 unique_ads[href] = link
                         
