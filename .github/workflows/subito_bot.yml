@@ -34,3 +34,11 @@ jobs:
         SUPABASE_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
         SEARCH_URLS: ${{ secrets.SEARCH_URLS }}
       run: python subito_monitor_bot.py
+
+    - name: Upload Debug Artifacts
+      if: always() # Esegui anche se lo step precedente fallisce
+      uses: actions/upload-artifact@v4
+      with:
+        name: debug-screenshots
+        path: scripts/subitobot/debug_*
+        retention-days: 5

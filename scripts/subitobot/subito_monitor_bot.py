@@ -128,19 +128,56 @@ class SubitoScraper:
                     await page.goto(url, wait_until='domcontentloaded', timeout=60000)
                     await asyncio.sleep(2) # Breve attesa
                     
-                    # Accetta cookie se necessario (semplificato)
+                    logger.info(f"Page Title: {await page.title()}")
+
+                    # Accetta cookie (nuovo selettore più preciso)
                     try:
-                        await page.click("button:has-text('Accetta')", timeout=2000)
+                        # Tenta diversi selettori per il banner cookie
+                        cookie_selectors = [
+                            "#onetrust-accept-btn-handler",
+                            "button:has-text('Accetta')",
+                            "button:has-text('Acconsento')", 
+                            "[id*='cookie'] button"
+                        ]
+                        for sel in cookie_selectors:
+                            if await page.is_visible(sel):
+                                await page.click(sel)
+                                await asyncio.sleep(1)
+                                break
                     except:
                         pass
                     
-                    # Estrai annunci (SmallCard è il formato lista più comune ora)
-                    # Usiamo selettori generici per robustezza
-                    ads_elements = await page.query_selector_all("div[class*='SmallCard-module_card']")
+                    # Scroll per caricare lazy load
+                    await page.evaluate("window.scrollTo(0, document.body.scrollHeight/2)")
+                    await asyncio.sleep(1)
+
+                    # Estrai annunci - Strategia a cascata
+                    ads_elements = []
+                    selectors = [
+                        "div[class*='SmallCard-module_card']", # Lista classica
+                        "div[class*='BigCard-module_card']",   # Griglia
+                        "div[class*='ItemCard']",              # Generico
+                        "div[class*='items_item']",            # Vecchio stile
+                        "div[class*='item-card']"              # Altro generico
+                    ]
+                    
+                    for sel in selectors:
+                        elements = await page.query_selector_all(sel)
+                        if elements:
+                            ads_elements = elements
+                            logger.info(f"Trovati {len(elements)} elementi con selettore: {sel}")
+                            break
                     
                     if not ads_elements:
-                         # Fallback su altri selettori se SmallCard non va
-                        ads_elements = await page.query_selector_all("div[class*='ItemCard']")
+                         logger.warning(f"NESSUN ANNUNCIO TROVATO SU {url}")
+                         # DEBUG: Salva screenshot e HTML
+                         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                         await page.screenshot(path=f"debug_screenshot_{timestamp}.png")
+                         content = await page.content()
+                         with open(f"debug_page_{timestamp}.html", "w", encoding="utf-8") as f:
+                             f.write(content)
+                         logger.info(f"Salvati screenshot e HTML di debug per analisi.")
+
 
                     logger.info(f"Trovati {len(ads_elements)} potenziali annunci su {url}")
                     
